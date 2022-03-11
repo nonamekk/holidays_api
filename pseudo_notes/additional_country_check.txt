@@ -1,0 +1,31 @@
+
+// since this will only trigger if there're no countries>?
+for each in list
+    push created entity.
+    push i to array.
+
+save array
+
+user makes a request.
+sends request for country, that doesn't exist in the database
+make a request to the API to get list of countries to verify this country not present.
+if it is not present in the obtained list, if it is found, 
+    replace old table with new one. + sync regions?
+
+check obtained data using for each to see difference, change in favor of new data.
+
+
+1. create country
+2. create regions (if any for each)
+
+make both to transaction.
+
+1. get country by
+    full_name
+    code
+2. get country and all regions by
+    full_name
+
+3. get country (and all regions) and date.
+    
+

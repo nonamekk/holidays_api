@@ -1,0 +1,46 @@
+
+if we want to find info about the day for any country
+days
+  id: smallint
+  year: smallint
+  month: smallint
+  day: smallint
+  absolute: boolean
+  holiday_in_countries: [country_id]
+  workday_in_countries: [country_id]
+  holiday_in_regions: [region_id]
+  workday_in_regions: [region_id]
+  none_in_countries: [country_id]
+  none_in_regions: [region_id]
+
+  if absolute is true, then all none_in_regions and none_in_countries MUST be empty
+
+regions
+  id: integer
+  country_id: smallint
+  region_code: varying char(3)
+  years: [smallint]
+
+country
+  id: integer
+  regions_ids: [region_id]
+  country_code: varying char(3)
+  country_full_name: varying char(32)
+  years: [smallint]
+  workdays: boolean
+  from_date_year: smallint
+  from_date_month: smallint
+  from_date_day: smallint
+  to_date_year: smallint
+  to_date_month: smallint
+  to_date_day: smallint
+
+
+SELECT countries.*, ARRAY(regions.*), days.*
+    FROM countries, days
+    JOIN regions
+    ON countries.id = regions.country_id
+    WHERE countries.id = 9 AND region_code = "ute"
+    WHERE countries.country_full_name = "Lithuania" AND region_code = "ute"
+    WHERE countries.country_code = "lt"
+    WHERE days.year = 2022 AND days.month = 12 AND days.day = 24

@@ -1,0 +1,106 @@
+PSEUDO CHECK DAY
+
+
+find country
+  if years contain requested year
+    find day by epoch
+    if day found
+      check holiday_in_countries and workdays_in_countries
+      if id found
+        return "holiday"/"workday"
+      else
+        based on Date
+        return "freeday"/"workday"
+    else
+      based on Date
+      return "freeday"/"workday"
+  else if regions_ids are present
+    collect all regions
+    if region_code is provided
+      if region is contained in the list of found regions
+        if requested year is contained in region years
+          try to find day by epoch
+          if day found
+            check holiday_in_regions and workday_in_regions
+            if id found
+              based on where id found
+              return "holiday"/"workday"
+            else
+              make a request to the API
+              cache the result()
+          else
+            based on the Date
+            return "workday"/"freeday"
+        else
+          try to find day by epoch
+          if day found
+            if absolute true
+              check holiday_in_regions and workday_in_regions
+              if id found
+                based on where id found
+                return "holiday"/"workday"
+              else
+                based on Date
+                return "freeday"/"workday"
+            else
+              check holiday_in_regions and workday_in_regions and none_in_regions
+              if id found
+                based on where id found (or on date)
+                return "holiday"/"workday"/"freeday"
+              else
+                make a request to the API
+          else
+            make a request to the API
+            cache the result()
+      else return error "wrong region_code was provided"
+    else (region code is not provided)
+      try to find day by epoch
+      if day found
+        if absolute true
+          check holiday_in_countries and workday_in_countries
+          if id found
+            based on where id found
+              return "holiday"/"workday"
+          else
+            check holiday_in_regions and workday_in_regions
+            if any of the country contained regions id were found
+              return error (need to provide region)
+            else
+              based on Date
+              return "freeday"/"workday"
+        else (absolute false)
+          check holiday_in_countries and workday_in_countries and none_in_countries
+          if id found
+            based on where id found (and on date)
+              return "holiday"/"workday"/"freeday"
+          else
+            check holiday_in_regions and workday_in_regions and none_in_regions
+            if any of the country contained regions id were found
+              return error (need to provide region)
+            else
+              make a request to the API
+              cache the result()
+      else
+        make a request to the API
+        cache the result
+  else (no regions id)
+    ignore if region is provided
+    find day by epoch
+    if day found
+      if absolute true
+        check holiday_in_countries and workdays_in_countries
+        if id found
+          return "holiday"/"workday"
+        else (id not found)
+          based on Date
+          return "freeday"/"workday"
+      else (absolute false)
+        check holiday_in_countries and workdays_in_countries and none_in_countries
+        if id found
+          return "holiday"/"workday"/"freeday"
+        else (id not found)
+          make a request to the API
+          cache the result()
+    else
+      make a request to the API
+      cache the result()

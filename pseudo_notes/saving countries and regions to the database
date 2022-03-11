@@ -1,0 +1,27 @@
+
+
+for each in array of countries with regions
+  check regions
+  if exist
+    regions.push(country_code, array_of_regions)
+  array.push(create())
+
+let result = await save(array);
+
+let array_regions
+
+let total = regions.length;
+let ticker = 0;
+
+for result in results
+  for region in regions
+    if (region.country_code == result.country_code) {
+      for array in each.arrays {
+        array_regions.push(create region)
+      }
+      ticker += 1;
+      break from regions;
+    }
+    if (ticker == total) break from results;
+
+save(array_regions);
