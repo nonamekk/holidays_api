@@ -1,0 +1,1 @@
+export type DayStatus = 'holiday' | 'workday' | 'freeday' | 'unknown';

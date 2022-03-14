@@ -1,6 +1,7 @@
-import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Inject, HttpException, HttpStatus, forwardRef } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Country } from '../country/country.entity';
+import { CountryEntityService } from '../country/country.service';
 import { Region } from './region.entity';
 import { IRegionEntity } from './region.interface';
 
@@ -9,6 +10,8 @@ export class RegionEntityService {
   constructor(
     @Inject('REGION_REPOSITORY')
     private regionRepository: Repository<Region>,
+    @Inject(forwardRef(() => CountryEntityService))
+    private readonly countryEntityService: CountryEntityService
   ) {}
 
 
@@ -67,5 +70,66 @@ export class RegionEntityService {
     }
     console.log(query.getQuery());
     return query.execute();
+  }
+
+  /**
+   * Updates region
+   * Optionally updates country if found required
+   * 
+   * @param region region entity class
+   * @param year 
+   * @param country_entity if provided, try to check if all other regions have @param year cached and if they do, 
+   * remove year from all regions and update country with that year set as cached
+   */
+  async add_year(region: Region, year: number, country_entity?: Country) {
+    if (country_entity != undefined) {
+      let do_remove = false;
+      let new_years_for_regions = [];
+      // do additional check to see if can remove years from all other regions and add it to year instead.
+      if (country_entity.regions.length != 0) {
+        for (let i=0; i<country_entity.regions.length; i++) {
+          new_years_for_regions.push([]);
+          if (country_entity.regions[i].id != region.id) {
+            if (country_entity.regions[i].years != null) {
+              let inner_change = false;
+              for (let j=0; j<country_entity.regions[i].years.length; j++) {
+                if (country_entity.regions[i].years[j] == year) {
+                  do_remove = true;
+                  inner_change = true;
+                  break;
+                } else {
+                  new_years_for_regions[i] = country_entity.regions[i].years[j];
+                }
+              }
+              if (!inner_change) {
+                do_remove = false;
+              }
+            } else {
+              do_remove = false;
+            }
+          }
+        }
+        if (do_remove) {
+          for (let i=0; i<country_entity.regions.length; i++) {
+            if (country_entity.regions[i].id != region.id) {
+              // country_entity.regions[i].years = (new_years_for_regions[i].length == 0) ? null : new_years_for_regions[i];
+              await this.update({"id": region.id, "code": region.code, "years": new_years_for_regions[i]})
+            }
+          }
+          await this.countryEntityService.add_year(country_entity, year);
+        } else {
+
+          await this.update({"id": region.id, "code": region.code, "years": region.years});
+        }
+
+
+      } else {
+        await this.update({"id": region.id, "code": region.code, "years": region.years});
+      }
+
+
+    } else {
+      await this.update({"id": region.id, "code": region.code, "years": region.years});
+    }
   }
 }

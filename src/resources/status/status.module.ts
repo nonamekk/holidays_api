@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CallendarModule } from 'src/integrations/holiday_callendar_api/callendar.module';
-import { CountryModule } from 'src/models/country/country.module';
+import { CountryEntityModule } from 'src/models/country/country.module';
 // import { OnSyncModule } from 'src/utilities/onsync.module';
 import { RegionEntityModule } from 'src/models/region/region.module';
 import { DayEntityModule } from 'src/models/day/day.module';
@@ -13,7 +13,7 @@ import { StatusOfDayResourceController } from './status.controller';
 import { StatusOfDayResourceService } from './status.service';
 
 @Module({
-  imports: [CallendarModule, CountryModule, DayEntityModule, DescriptorModule, ConfigModule, 
+  imports: [CallendarModule, CountryEntityModule, DayEntityModule, DescriptorModule, ConfigModule, 
     CacherModule, RegionEntityModule],
   controllers: [StatusOfDayResourceController],
   providers: [StatusOfDayResourceService],

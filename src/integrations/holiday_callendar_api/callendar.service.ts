@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
 import { IDay, ICountry } from './callendar.interface';
 
@@ -12,7 +12,13 @@ export class CallendarService {
     return this.httpService
         .get('https://kayaposoft.com/enrico/json/v2.0/?action=getSupportedCountries')
         .pipe(
-            map((response) => response.data)
+            map((response) => {
+                if (response.data.error != undefined) {
+                    throw new HttpException({ "code": 400, "error": response.data.error }, HttpStatus.BAD_REQUEST)
+                }
+                
+                return response.data
+            })
         );
   }
 
@@ -25,7 +31,13 @@ export class CallendarService {
     
     return this.httpService
         .get(req).pipe(
-            map((response) => {return response.data})
+            map((response) => {
+                if (response.data.error != undefined) {
+                    throw new HttpException({ "code": 400, "error": response.data.error }, HttpStatus.BAD_REQUEST)
+                }
+
+                return response.data
+            })
         );
   }
 
@@ -37,9 +49,15 @@ export class CallendarService {
 
     return this.httpService
         .get(req).pipe(
-            map((response) => response.data.filter((day: { holidayType: string; }) => {
-                return (day.holidayType == "public_holiday" || day.holidayType == "extra_working_day")
-            }))
+            map((response) => { 
+                if (response.data.error != undefined) {
+                    throw new HttpException({ "code": 400, "error": response.data.error }, HttpStatus.BAD_REQUEST)
+                }
+
+                return response.data.filter((day: { holidayType: string; }) => {
+                    return (day.holidayType == "public_holiday" || day.holidayType == "extra_working_day")
+                })
+            })
         );
     }
 
@@ -51,11 +69,15 @@ export class CallendarService {
 
     return this.httpService
         .get(req).pipe(
-            map((response) => 
-                response.data.filter((day: { holidayType: string; }) => {
+            map((response) => {
+                if (response.data.error != undefined) {
+                    throw new HttpException({ "code": 400, "error": response.data.error }, HttpStatus.BAD_REQUEST)
+                }
+
+                return response.data.filter((day: { holidayType: string; }) => {
                     return (day.holidayType == "public_holiday" || day.holidayType == "extra_working_day")
                 })
-            )
+            })
             // this is optional, decrease performance twice 
             // map((data) => 
             //     data.map((val) => {

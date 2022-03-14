@@ -9,3 +9,9 @@ export interface IStatusOfDayRequestError {
 
     region_code?: string | string[];
 }
+
+export interface IDayStatusDate {
+    day: number,
+    month: number,
+    year: number
+}

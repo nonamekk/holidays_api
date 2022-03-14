@@ -10,7 +10,7 @@ import { ErrorService as es } from "src/errors/adderror.service";
 import { RegionEntityService } from '../region/region.service';
 
 @Injectable()
-export class CountryService {
+export class CountryEntityService {
   constructor(
     @Inject('COUNTRY_REPOSITORY')
     private countryRepository: Repository<Country>,
@@ -85,7 +85,17 @@ export class CountryService {
                 "country_id": x.id,
                 "country_years": x.years,
                 "country_code": x.code,
-                "country_name": x.full_name
+                "country_name": x.full_name,
+                "starting_date": {
+                  day: x.from_date_day,
+                  month: x.from_date_month,
+                  year: x.from_date_year
+                },
+                "ending_date": {
+                  day: x.to_date_day,
+                  month: x.to_date_month,
+                  year: x.to_date_year
+                }
               }
           }
         }
@@ -93,7 +103,17 @@ export class CountryService {
           "country_id": x.id,
           "country_years": x.years,
           "country_code": x.code,
-          "country_name": x.full_name
+          "country_name": x.full_name,
+          "starting_date": {
+            day: x.from_date_day,
+            month: x.from_date_month,
+            year: x.from_date_year
+          },
+          "ending_date": {
+            day: x.to_date_day,
+            month: x.to_date_month,
+            year: x.to_date_year
+          }
         }
       }
     )
@@ -113,6 +133,14 @@ export class CountryService {
         code: code
       }
     });
+  }
+
+  async findByIdWithRegions(id: number) {
+    return this.countryRepository
+      .createQueryBuilder("country")
+      .leftJoinAndSelect("country.regions", "region")
+      .where("country.id = :id", {id: id})
+      .getOne();
   }
 
   // will accept any input (in case some values will be added to API)
@@ -186,7 +214,7 @@ export class CountryService {
     } else {
       country.years.push(year);
     }
-    await this.update(country);
+    return await this.update(country);
   }
 
 

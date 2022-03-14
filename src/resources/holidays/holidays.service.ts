@@ -3,7 +3,7 @@ import { MonthsEnum } from './holidays.enum';
 import { HolidaysDtoRequest } from "./holidays.dto";
 import { DayEntityService } from "src/models/day/day.service";
 import { CallendarService } from "src/integrations/holiday_callendar_api/callendar.service";
-import { CountryService } from "src/models/country/country.service";
+import { CountryEntityService } from "src/models/country/country.service";
 import { ErrorService as es } from "src/errors/adderror.service";
 
 import {IHolidaysRequestError} from "./holidays.interface";
@@ -21,7 +21,7 @@ import { CacherService } from "src/cacher/cacher.service";
 export class HolidaysResourceService {
     constructor(
         private readonly callendarService: CallendarService,
-        private readonly countryEntityService: CountryService,
+        private readonly countryEntityService: CountryEntityService,
         private readonly configService: ConfigService,
         private readonly dayEntityService: DayEntityService,
         private readonly cacherService: CacherService
@@ -161,7 +161,28 @@ export class HolidaysResourceService {
 
 
         let countries_database = await this.countryEntityService.findByWithRegions(req.country_name, req.country_code, req.region_code);
-
+        
+        if (countries_database.starting_date.year > req.year) {
+            if (countries_database.starting_date.month != 1 && countries_database.starting_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+(countries_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
+            } else {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+countries_database.starting_date.year} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (countries_database.starting_date.year == req.year) {
+            if (countries_database.starting_date.month != 1 && countries_database.starting_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+(countries_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (countries_database.ending_date.year < req.year) {
+            if (countries_database.ending_date.month != 1 && countries_database.ending_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
+            } else {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year)} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (countries_database.ending_date.year == req.year) {
+            if (countries_database.ending_date.month != 1 && countries_database.ending_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
+            }
+        }
 
 
         if (countries_database == null) {
@@ -205,7 +226,6 @@ export class HolidaysResourceService {
             let days_are_in_database = false;
             let year_in_country = false;
             let year_in_region = false;
-            console.log(countries_database);
             
             if (countries_database.region_years != undefined) {
                 // region provided    

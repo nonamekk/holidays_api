@@ -3,7 +3,7 @@ import { lastValueFrom } from "rxjs";
 import { ICountry } from "src/integrations/holiday_callendar_api/callendar.interface";
 import { CallendarService } from "src/integrations/holiday_callendar_api/callendar.service";
 import { Country } from "src/models/country/country.entity";
-import { CountryService } from "src/models/country/country.service";
+import { CountryEntityService } from "src/models/country/country.service";
 import { Day } from "src/models/day/day.entity";
 import { DayEntityService } from "src/models/day/day.service";
 import { Region } from "src/models/region/region.entity";
@@ -13,7 +13,7 @@ import { RegionEntityService } from "src/models/region/region.service";
 @Injectable()
 export class CacherService {
     constructor(
-        private readonly countryEntityService: CountryService,
+        private readonly countryEntityService: CountryEntityService,
         private readonly callendarService: CallendarService,
         private readonly dayEntityService: DayEntityService,
         private readonly regionEntityService: RegionEntityService

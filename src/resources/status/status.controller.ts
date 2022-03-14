@@ -12,6 +12,8 @@ export class StatusOfDayResourceController {
     async getHolidaysList(
         @Query() req: StatusDtoRequest
     ) {
-        return this.statusOfDayService.validateRequest(req);
+        return await this.statusOfDayService.serveDayStatus(
+            this.statusOfDayService.validateRequest(req)
+        );
     }
 }
