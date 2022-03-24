@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { Country } from '../country/country.entity';
 import { Region } from '../region/region.entity';
+import { WeekDay } from './day.type';
 
 // smallint
 
@@ -29,6 +30,14 @@ export class Day {
     nullable: false
   })
   day: number;
+
+  // Day of the week 1-7. 
+  // Optional in case data not found, but required to save (/status endpoint)
+  @Column({
+    type: 'smallint',
+    nullable: true
+  })
+  week_day?: WeekDay;
 
   // identifies if day was checked by all countries and their regions
   // if this is true, then none_in_regions and none_in_countries MUST be null

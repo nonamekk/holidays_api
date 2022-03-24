@@ -8,6 +8,11 @@ import { IDay, ICountry } from './callendar.interface';
 export class CallendarService {
   constructor(private httpService: HttpService) {}
 
+  /**
+   * Collects all available countries from the API
+   * @returns data from response
+   * @throws prepared HttpExeception with BAD_REQUEST and error from API
+   */
   getCountries(): Observable<ICountry[]> {
     return this.httpService
         .get('https://kayaposoft.com/enrico/json/v2.0/?action=getSupportedCountries')
@@ -22,6 +27,14 @@ export class CallendarService {
         );
   }
 
+  /**
+   * Get list of holidays for desired country (and its region) by their codes and year
+   * @param country_code 
+   * @param year 
+   * @param region_code 
+   * @returns data from response 
+   * @throws prepared HttpExeception with BAD_REQUEST and error from API
+   */
   getHolidaysForYear(country_code: string, year: number, region_code?: string): Observable<IDay[]> {
     // blantly can just make a request with region="" and don't make a check, it will work the same
     // check if region_code is undefined or ""
@@ -41,6 +54,14 @@ export class CallendarService {
         );
   }
 
+  /**
+   * Get list of workdays or holidays for desired country (and its region) by their codes and year
+   * @param country_code 
+   * @param year 
+   * @param region_code 
+   * @returns data from response
+   * @throws prepared HttpExeception with BAD_REQUEST and error from API
+   */
   getAllForYear(country_code: string, year: number, region_code?: string): Observable<IDay[]> {
 
     let req: string = (!region_code) ?
@@ -61,6 +82,14 @@ export class CallendarService {
         );
     }
 
+  /**
+   * Get day info on a day for desired country (and its region) and date
+   * @param date 
+   * @param country_code 
+   * @param region_code 
+   * @returns array with day if it is holiday or workday (empty array otherwise)
+   * @throws prepared HttpException with BAD_REQUEST if there's an error from API
+   */
   getDay (date: string, country_code: string, region_code?: string): Observable<IDay[]> {
     let req: string = (!region_code) ?
         `https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange&fromDate=${date}&toDate=${date}&country=${country_code}`

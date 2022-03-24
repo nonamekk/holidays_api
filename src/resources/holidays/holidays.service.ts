@@ -124,7 +124,7 @@ export class HolidaysResourceService {
 
     async serveHolidaysList(req: HolidaysDtoRequest) {
 
-        let daysForThisYear = this.dayEntityService.findByYearWithArrays(req.year);
+        let daysForThisYear = this.dayEntityService.findByYear(req.year);
 
         // If hotload is on, this will prepare holidays for each month from the API.
         // This can be served in case no data in the database.

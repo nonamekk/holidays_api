@@ -1,3 +1,4 @@
+import {WeekDay} from "../../models/day/day.type";
 
 export interface IDay {
     date: IDate,
@@ -8,7 +9,6 @@ export interface IDate {
     year: number,
     month: number,
     day: number,
-    // holiday can be a free day initially
     dayOfWeek: number,
 }
 

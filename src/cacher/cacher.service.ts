@@ -142,12 +142,12 @@ export class CacherService {
         // return {countryEntity, regionEntity};
     }
 
-    async mitigate_days_response_difference(regionEntity:any, countryEntity: Country, year: number, daysForThisYear?: Promise<Day[]>) {
+    async mitigate_days_response_difference(regionEntity: Region | undefined, countryEntity: Country, year: number, daysForThisYear?: Promise<Day[]>) {
         let region_entity_code = (regionEntity == undefined) ? undefined : (regionEntity.code);
                     
         let days_response = await lastValueFrom(this.callendarService.getAllForYear(countryEntity.code, year, region_entity_code));
         let days_database = (daysForThisYear == undefined)?
-            await this.dayEntityService.findByYearWithArrays(year)
+            await this.dayEntityService.findByYear(year)
         : await daysForThisYear;
         
         if (days_database.length == 0) {
@@ -203,7 +203,7 @@ export class CacherService {
                 // if region has years
                 
             }
-            console.log(year_in_left_regions);
+
             if (year_in_left_regions) {
                 // already cached days for all of the regions.
 
