@@ -26,6 +26,25 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+Main task is to serve 4 endpoints to provide information about holidays or workdays. The application saves data on demand by caching data to PostgreSQL database. 
+
+Main scope was to create error prone solution, that would work indefinite amount of time, not only relying on the data already obtained, but have option to check on API to see if already obtained data is different.
+
+Currently only first endpoint (/countries) can have a setting to send response every time after data is found in the database and served to user. The additional call to the API can be made once every day, every month or every year or not be called at all.
+
+Enpoints are using data from https://kayaposoft.com/enrico/
+
+
+## Endpoints
+
+1. /contries - returns list of available countries with their regions
+2. /holidays - returns grouped list of every month with holiday dates in country (and region) for specified year
+3. /status - returns information about the requested day in country (and region). Returns day information about date (year, month, day, day in the week, UTC full date) and status, which can be 'holiday', 'workday' or 'freeday'
+
+Currently 3rd enpoint (/status) returns unformatted data from API (not sure why). 
+
+Generated documentation can be access on /api endpoint.
+
 ## Installation
 
 ```bash
@@ -33,6 +52,10 @@ $ npm install
 ```
 
 ## Running the app
+
+To connect application to the database it is required to change database settings in the config.yaml
+
+Application default port is 3001
 
 ```bash
 # development
@@ -46,6 +69,8 @@ $ npm run start:prod
 ```
 
 ## Test
+
+Unit tests of the solution are not provided, only default created by NestJS
 
 ```bash
 # unit tests
