@@ -20,7 +20,7 @@ export class CacherService {
 
     ) {}
 
-    async cache(countries_response, country_code, region_code, year, daysForThisYear) {
+    async cache(countries_response: ICountry[], country_code: string, region_code: string | undefined, year: number, daysForThisYear: Promise<Day[]> | undefined) {
         // ##############
         // Cache new countries if there's difference
         if (countries_response != undefined) {

@@ -16,7 +16,7 @@ export class HolidaysResourceController {
         description: "This endpoint returns list of months with holidays days. \n\nIt is required to provide at least either country_name or country_code, because the response returns holidays for the country specified. \n\nThe results are cached to the database. \nThere's a setting to turn on/off hotload, which makes request to the API prior finding data in the database, so in the case of not finding data in the database, serve serialized data from the third-party API"
     })
     @ApiResponse({
-        status: 201,
+        status: 200,
         description: 'Groups each holiday day to a month for set country and year',
         schema: {
             type: "array",

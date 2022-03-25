@@ -1,5 +1,4 @@
 import { HttpException, HttpStatus, Inject, Injectable} from "@nestjs/common";
-import { MonthsEnum } from './holidays.enum';
 import { HolidaysDtoRequest } from "./holidays.dto";
 import { DayEntityService } from "src/models/day/day.service";
 import { CallendarService } from "src/integrations/holiday_callendar_api/callendar.service";
@@ -193,7 +192,6 @@ export class HolidaysResourceService {
                     
             let days_response = await lastValueFrom(this.callendarService.getHolidaysForYear(country_code, req.year, req.region_code));
 
-            // console.log(days_response);
             if (days_response.length == 0) {
                 throw new HttpException({
                     "code": 404,
@@ -215,7 +213,6 @@ export class HolidaysResourceService {
                     );
                 }),
                 map((x:IMonthsObject[])=> {
-                    // console.log(x);
                     return x
                 }));
             }
@@ -304,7 +301,6 @@ export class HolidaysResourceService {
                     }),
                     
                     map(async x => {
-                        // console.log(x);
                         let a = await x;
                         if (a.containing_days == true) {
                             return a.result;

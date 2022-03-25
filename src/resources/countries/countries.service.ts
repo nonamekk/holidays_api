@@ -58,10 +58,10 @@ export class CountriesService {
             o.complete();
         })
         .pipe(
-            tap((x: Country[]) => {
+            tap(async (x: Country[]) => {
                 // check if onSync (reload) is set in config
                 // If settings contain onSync values, this will trigger additional check of countries to try update database current
-                if (this.onSyncService.onTryCall) {
+                if (await this.onSyncService.onTryCall()) {
                     this.callendarService.getCountries().subscribe((call_list: ICountry[]) => {
                         // update if there're new countries or regions
                         this.countryEntityService.tryUpdateFromAPI(x, call_list);

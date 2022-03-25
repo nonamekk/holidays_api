@@ -203,6 +203,8 @@ export class DayEntityService {
         date.workday_in_regions_ids = d.workday_in_regions_ids;
         date.none_in_countries_ids = d.none_in_countries_ids;
         date.none_in_regions_ids = d.none_in_regions_ids;
+        date.week_day = d.day_of_week;
+        
         return this.dayRepository.create(date);
     } else {
         throw new HttpException('Unable to create day, no day/month/year set', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -716,7 +718,7 @@ export class DayEntityService {
    * @returns saved day
    */
   createOneDayFromResponse(day_response: IDay, day_requested: IDayStatusDate, country_id: number, region_id?: number) {
-    let new_day: IDayEntity;
+    let new_day: IDayEntity = {};
     if (day_response == null) {
       new_day.day = day_requested.day;
       new_day.month = day_requested.month;

@@ -1,12 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-// import { map, Observable, tap } from 'rxjs';
-// import { ICountry } from 'src/integrations/holiday_callendar_api/callendar.interface';
 import { CallendarService } from 'src/integrations/holiday_callendar_api/callendar.service';
-// import { Country } from 'src/models/country/country.entity';
 import { CountryEntityService } from 'src/models/country/country.service';
-// import { Region } from 'src/models/region/region.entity';
 import { RegionEntityService } from 'src/models/region/region.service';
-// import { OnSyncService } from 'src/utilities/onsync.service';
 import { StatusDtoRequest } from './status.dto';
 import { IDayStatusDate, IStatusOfDayRequestError } from './status.interface';
 import { ErrorService as es } from "src/errors/adderror.service";
@@ -17,8 +12,8 @@ import { Country } from 'src/models/country/country.entity';
 import { Region } from 'src/models/region/region.entity';
 import { IDay } from 'src/integrations/holiday_callendar_api/callendar.interface';
 import { Day } from 'src/models/day/day.entity';
-import { MonthsEnum } from '../holidays/holidays.enum';
 import {DayStatus} from './status.type';
+import { WeekDaysEnum } from 'src/utilities/days.enum';
 
 
 @Injectable()
@@ -128,10 +123,10 @@ export class StatusOfDayResourceService {
             this.throwBeforeError(country);
 
         } else if (country.from_date_year == req.year) {
-            if (country.from_date_month < req.month) {
+            if (country.from_date_month > req.month) {
                 this.throwBeforeError(country)
             } else if (country.from_date_month == req.month) {
-                if (country.from_date_day < req.day) {
+                if (country.from_date_day > req.day) {
                     this.throwBeforeError(country);
                 }
             }
@@ -152,6 +147,7 @@ export class StatusOfDayResourceService {
 
     createResponse(day: IDayStatusDate, status: DayStatus) {
         let dateFormat = new Date(day.year, (day.month-1), day.day);
+        let week_day_number = dateFormat.getDay()+1;
         if (status == 'unknown') {
             if (dateFormat.getDay() > 4) {
                 status = 'freeday'
@@ -161,11 +157,12 @@ export class StatusOfDayResourceService {
         }
         return {
             "date": {
-                "day": day.day,
-                "month": day.month,
-                "year": day.year,
-                "day_of_week": dateFormat.getDay()+1,
-                "utc": dateFormat.getUTCDate()
+                "day": Number(day.day),
+                "month": Number(day.month),
+                "year": Number(day.year),
+                "week_day_number": week_day_number,
+                "week_day": WeekDaysEnum[week_day_number],
+                "to_date": dateFormat
             },
             "status": status
         }
@@ -307,7 +304,7 @@ export class StatusOfDayResourceService {
             (req.country_code != undefined) ?
                 this.countryEntityService.findByCodeWithRegions(req.country_code)
                 :
-                this.countryEntityService.findByNameWithRegions(req.country_name)
+                this.countryEntityService.findByNameWithRegions(req.country_name);
 
         let day_database = this.dayEntityService.find_by_date(req.year, req.month, req.day);
 
@@ -318,7 +315,7 @@ export class StatusOfDayResourceService {
         // day found can be empty array
         let day_response_try = this.configService.getConfig().then(
             async cfg => {
-                let hotload: boolean = (cfg.settings.hotload);
+                // let hotload: boolean = (cfg.settings.hotload);
                 if (cfg.settings.hotload) {
                     return this.tryLoadDay(req, (await db_country_promise), true)
                 } else {
@@ -415,57 +412,70 @@ export class StatusOfDayResourceService {
             // throw new HttpException({ "code": 404, "message": tryLoadDay.error, "error": "Not Found" }, HttpStatus.NOT_FOUND)
         }
 
-        
+
         // at this point day_obs must not be undefined (unless there's a data race and the day appeared after it was not found by date)
         if (!tryLoadDay.country_year && !tryLoadDay.region_year) {
 
-            let day: Observable<IDay[]> = tryLoadDay.day_obs
-            day.pipe(
-                tap(async day => {
-                    if ((await day_database) != undefined) {
-                        // update
-                        if (day.length != 0) {
-                            if (tryLoadDay.countries_update_promise != undefined) {
-                                let res: any = await tryLoadDay.countries_update_promise;
-                                try {
-                                    await this.cacheDayForJustCreatedCountry(res, req, day[0], (await day_database));
+            return ((tryLoadDay.day_obs) as Observable<IDay[]>).pipe(
+                tap((day: IDay[]) => {
+                    day_database.then(day_database => {
+                        if (day_database != undefined) {
+                            let response_day = (day.length == 0) ? null : day[0];
+                            
+                                if (tryLoadDay.countries_update_promise != undefined) {
+                                    tryLoadDay.countries_update_promise.then(res => {
+                                        try {
+                                            this.cacheDayForJustCreatedCountry(res, req, response_day, (day_database)).finally();
+                                            
+        
+        
+                                        } catch {
+                                            // day might be created for new region/county
+                                            this.cacheDayForQuestionableCountry(req, response_day, (day_database)).finally();
+                                        }
+                                    });
+
+                                    db_country_promise.then(db_country_promise => {
+                                        this.dayEntityService.updateOneDayFromResponse(
+                                            response_day, 
+                                            (day_database),
+                                            (db_country_promise),
+                                            isYear.region_id
+                                        ).finally();
+                                    });
                                     
-
-
-                                } catch {
-                                    // day might be created for new region/county
-                                    await this.cacheDayForQuestionableCountry(req, day[0], (await day_database))
+                                    
                                 }
-                            }
-                            await this.dayEntityService.updateOneDayFromResponse(
-                                day[0], 
-                                (await day_database),
-                                (await db_country_promise),
-                                isYear.region_id
-                            );
-                        }
-                    } else {
-                        // create
-                        if (day.length != 0) {
+                            
+                        } else {
+                            // create
+                            let response_day = (day.length == 0) ? null : day[0];
+                            
                             if (tryLoadDay.countries_update_promise != undefined) {
-                                let res: any = await tryLoadDay.countries_update_promise;
-                                try {
-                                    await this.cacheDayForJustCreatedCountry(res, req, day[0], (await day_database));
-
-
-
-                                } catch {
-                                    await this.cacheDayForQuestionableCountry(req, day[0], (await day_database))
-                                }
+                                tryLoadDay.countries_update_promise.then(res => {
+                                    try {
+                                        this.cacheDayForJustCreatedCountry(res, req, response_day, (day_database)).finally();
+                                        
+    
+    
+                                    } catch {
+                                        // day might be created for new region/county
+                                        this.cacheDayForQuestionableCountry(req, response_day, (day_database)).finally();
+                                    }
+                                });
                             }
-                            await this.dayEntityService.createOneDayFromResponse(
-                                day[0], 
-                                req,
-                                (await db_country_promise).id,
-                                isYear.region_id
-                            );
+                            db_country_promise.then(db_country_promise => {
+                                this.dayEntityService.createOneDayFromResponse(
+                                    response_day, 
+                                    req,
+                                    (db_country_promise).id,
+                                    isYear.region_id
+                                ).finally();
+                            })
+                                
+                            
                         }
-                    }
+                    });
                 }),
                 map(day => {
                     if (day.length == 0) {
@@ -480,7 +490,7 @@ export class StatusOfDayResourceService {
                 }
             
             ));
-            return day;
+            // return day;
         } else {
             throw new HttpException(
                 {"code": 500, 
@@ -679,7 +689,7 @@ export class StatusOfDayResourceService {
                             : country_name_not_found_case.countries_update_promise,
                         // day found from api
                         "day_obs": undefined
-                        }
+                    }
                 }
                 
             }

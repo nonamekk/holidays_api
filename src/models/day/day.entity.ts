@@ -37,7 +37,7 @@ export class Day {
     type: 'smallint',
     nullable: true
   })
-  week_day?: WeekDay;
+  week_day: WeekDay | null = null;
 
   // identifies if day was checked by all countries and their regions
   // if this is true, then none_in_regions and none_in_countries MUST be null
