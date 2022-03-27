@@ -392,7 +392,19 @@ export class DayEntityService {
     let query = this.dayRepository
       .createQueryBuilder()
       .update()
-      .set({
+      
+      if(d.day_of_week != undefined) {
+        query.set({
+          absolute: d.absolute,
+          holiday_in_countries_ids: d.holiday_in_countries_ids,
+          holiday_in_regions_ids: d.holiday_in_regions_ids,
+          workday_in_countries_ids: d.workday_in_countries_ids,
+          workday_in_regions_ids: d.workday_in_regions_ids,
+          none_in_countries_ids: d.none_in_countries_ids,
+          none_in_regions_ids: d.none_in_regions_ids,
+          week_day: d.day_of_week
+        });
+      } else query.set({
         absolute: d.absolute,
         holiday_in_countries_ids: d.holiday_in_countries_ids,
         holiday_in_regions_ids: d.holiday_in_regions_ids,
@@ -400,8 +412,8 @@ export class DayEntityService {
         workday_in_regions_ids: d.workday_in_regions_ids,
         none_in_countries_ids: d.none_in_countries_ids,
         none_in_regions_ids: d.none_in_regions_ids,
-        week_day: d.day_of_week
       });
+      
       
 
     if (d.id != undefined) {
@@ -1135,6 +1147,8 @@ export class DayEntityService {
 
       for (let i=0; i<day_database.holiday_in_countries_ids.length; i++) {
         if (country_entity.id = day_database.holiday_in_countries_ids[i]) {
+
+          if (day_database.holiday_in_regions_ids != null)
           if (day_database.holiday_in_regions_ids.length >= country_entity.regions.length) {
             
               // checks if delete ever happened
@@ -1186,6 +1200,7 @@ export class DayEntityService {
         for (let i=0; i<day_database.workday_in_countries_ids.length; i++) {
           if (country_entity.id = day_database.workday_in_countries_ids[i]) {
             new_some_in_list = [];
+            
             if (country_entity.regions.length != regions_ids_check_list.length) {
               regions_ids_check_list = [];
               for (let i=0; i<country_entity.regions.length; i++) {
@@ -1195,6 +1210,8 @@ export class DayEntityService {
 
             // checks if delete ever happened
             let delete_happened = false;
+
+            if (day_database.workday_in_regions_ids != null)
             for (let i=0; day_database.workday_in_regions_ids.length; i++) {
               // checks if delete occured under in the scope of this day
               let delete_occured = false;
@@ -1245,6 +1262,8 @@ export class DayEntityService {
   
               // checks if delete ever happened
               let delete_happened = false;
+
+              if (day_database.none_in_regions_ids != null)
               for (let i=0; day_database.none_in_regions_ids.length; i++) {
                 // checks if delete occured under in the scope of this day
                 let delete_occured = false;
@@ -1301,6 +1320,7 @@ export class DayEntityService {
         throw "Can't try value for absolute eligability if no countries are present";
       }
       // there's a chance that this day was the only day checked by all countries and their regions without requesting all days for this year.
+      if (day.holiday_in_countries_ids != null && day.workday_in_countries_ids != null && day.none_in_regions_ids != null)
       if (day.holiday_in_countries_ids.length + day.workday_in_countries_ids.length + day.none_in_countries_ids.length == csrs.length) {
         // day.absolute = true;
         return true;
@@ -1487,7 +1507,7 @@ export class DayEntityService {
    * @param year 
    * @returns number of days for requested year
    */
-  private daysInYear(year: number) {
+  daysInYear(year: number) {
     return ((year % 4 === 0 && year % 100 > 0) || year %400 == 0) ? 366: 365;
   }
 

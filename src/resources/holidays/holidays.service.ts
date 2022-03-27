@@ -1,17 +1,14 @@
-import { HttpException, HttpStatus, Inject, Injectable} from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable} from "@nestjs/common";
 import { HolidaysDtoRequest } from "./holidays.dto";
 import { DayEntityService } from "src/models/day/day.service";
 import { CallendarService } from "src/integrations/holiday_callendar_api/callendar.service";
 import { CountryEntityService } from "src/models/country/country.service";
 import { ErrorService as es } from "src/errors/adderror.service";
-
 import {IHolidaysRequestError} from "./holidays.interface";
-import { DescriptorService } from "src/utilities/descriptor.service";
 import { ConfigService } from "src/config/config.service";
 import { lastValueFrom, map, Observable, tap } from "rxjs";
 import { IMonthsObject } from "src/utilities/descriptor.interface";
 import { ICountry, IDay } from "src/integrations/holiday_callendar_api/callendar.interface";
-import { RegionEntityService } from "src/models/region/region.service";
 import { CacherService } from "src/cacher/cacher.service";
 
 
@@ -26,6 +23,12 @@ export class HolidaysResourceService {
         private readonly cacherService: CacherService
     ) {}
 
+    /**
+     * Validates the request data
+     * @param req 
+     * @returns req 
+     * @throws HttpException if not meeting
+     */
     validateRequest(req: HolidaysDtoRequest) {
         let errorMessages: string[] = [];
         if (req.country_code == undefined && req.country_name == undefined) {
@@ -76,7 +79,18 @@ export class HolidaysResourceService {
         }
     }
 
-    // containing days identifies if there're any days in the list. false = there're no days.
+    /**
+     * Prepares days from the third-party API.
+     * 
+     * @returns data about:
+     * - boolean on were the days found (no days, but country found)
+     * - prepared result to return to user
+     * - unserialized days array (obtained originally)
+     * 
+     * @param country_code 
+     * @param year 
+     * @param region_code
+     */
     prepareHolidaysFromCallendar(country_code: string, year: number, region_code?: string) {
         return this.callendarService.getHolidaysForYear(country_code, year, region_code)
             .pipe(
@@ -93,6 +107,13 @@ export class HolidaysResourceService {
             )
     }
 
+    /**
+     * Finds country code, using country name from the user request, by using countries list from the third-party response
+     * @param req 
+     * @param countries_response 
+     * @returns country code
+     * @throws HttpException if country with given name was not found
+     */
     async findCountryCodeUsingResponse(req: HolidaysDtoRequest, countries_response: ICountry[]) {
         let country_code = undefined;
         if (req.country_code == undefined && req.country_name != undefined) {
@@ -121,7 +142,38 @@ export class HolidaysResourceService {
         return country_code;
     }
 
-    async serveHolidaysList(req: HolidaysDtoRequest) {
+    /**
+     * #### Serves holiday days list that of requested.
+     * 
+     * Based on the config (hotload) api call will be made to collect data from the api,
+     * before the data is checked in the database.
+     * 
+     * Making two requests to the database:
+     * - to get ALL days of requested year
+     * - country with its region ids (and region requested)
+     * 
+     * Response will be produced based on:
+     * - is country or any country were found (use third-party API if no country found)
+     * - is saved country dates limits are met (if requested doesn't meet throw HttpException)
+     * - is country or region already has requested year days cached from database response. 
+     * If no year found, then take data from third-party API
+     * 
+     * If found that year is (cached) saved in the database, then filter out days that are not holiday 
+     * for requested country (and region)
+     * 
+     * For both database days and third-party API days allocate each day to specified month from 1st to 12nd to
+     * return as an array of months with days in each months (if no days found, return empty month array list)
+     * 
+     * Days that are found from the API are saved or updated to the database.
+     * Country or region that are found are saved to the database (it will create or update new countries), 
+     * found days are saved with that new country_id or region_id.
+     * 
+     * 
+     * @param req
+     * @returns 
+     * @throws HttpException
+     */
+    async serveHolidaysList(req: HolidaysDtoRequest): Promise<IMonthsObject[] | Observable<IMonthsObject[]>> {
 
         let daysForThisYear = this.dayEntityService.findByYear(req.year);
 
@@ -139,7 +191,6 @@ export class HolidaysResourceService {
                         };
                     } else {
                         let res = this.prepareHolidaysFromCallendar(req.country_code, req.year, req.region_code);
-                        // true, promise<observable..>
                         return {
                             "hotload": hotload, 
                             "list": res
@@ -221,8 +272,6 @@ export class HolidaysResourceService {
             // country code must be defined
 
             let days_are_in_database = false;
-            let year_in_country = false;
-            let year_in_region = false;
             
             if (countries_database.region_years != undefined) {
                 // region provided    
@@ -230,7 +279,6 @@ export class HolidaysResourceService {
                 for (let i=0; countries_database.region_years.length; i++) {
                     if (countries_database.region_years[i] == req.year) {
                         days_are_in_database = true;
-                        year_in_region;
                         break;
                     }
                 }} else {
@@ -242,7 +290,6 @@ export class HolidaysResourceService {
                 if (countries_database.country_years != null) {
                 for (let i=0; i<countries_database.country_years.length; i++) {
                     if (countries_database.country_years[i] == req.year) {
-                        year_in_country = true;
                         days_are_in_database = true;
                     }
                 }} else {
@@ -252,23 +299,17 @@ export class HolidaysResourceService {
             }
 
             if (days_are_in_database) {
-                // make a request to the database
-                let days = await daysForThisYear;
-                // if (year_in_country) {
-                //     // use country year find
-                // } else {
-                //     // use region year find
-                // }
-                
+
+                // make a request to the database 
                 return await this.dayEntityService.prepareHolidaysFromDatabaseToResponse(
-                    days, countries_database.country_id, countries_database.region_id
+                    (await daysForThisYear), countries_database.country_id, countries_database.region_id
                 );
                 
                 // return false;
                 
             } else {
                 // use hotloaded values from api.
-                let list: Observable<Promise<{
+                let res_list_obs: Observable<Promise<{
                     containing_days: boolean;
                     result: IMonthsObject[];
                     days: IDay[];
@@ -279,12 +320,12 @@ export class HolidaysResourceService {
 
                     if (hotloaded.hotload == true) {
                         // values were loaded.
-                        list = hotloaded.list;
+                        res_list_obs = hotloaded.list;
                     } else {
-                        list = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
+                        res_list_obs = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
                     }
                 } else {
-                    list = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
+                    res_list_obs = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
                 }
                 
 
@@ -292,20 +333,25 @@ export class HolidaysResourceService {
                 
 
 
-                if (list != null) {
-                    return list.pipe(tap(async x=>{
+                if (res_list_obs != null) {
+                    let res_list = await lastValueFrom(res_list_obs);
+                    let obs = new Observable((o) => {
+                        o.next(res_list);
+                        o.complete();
+                    });
 
+                    return obs.pipe(
+                    tap(async () => {
                         await this.cacherService.cache(
                             undefined, countries_database.country_code, countries_database.region_code, req.year, daysForThisYear
-                        );
-                    }),
-                    
-                    map(async x => {
-                        let a = await x;
-                        if (a.containing_days == true) {
-                            return a.result;
+                        )
+                    }), 
+                    map((x: {containing_days: boolean, result: IMonthsObject[], days: IDay[]}) => {
+
+                        if (x.containing_days == true) {
+                            return x.result;
                         } else {
-                            let message;
+                            let message: string;
                             if (countries_database.region_code != undefined) {
                                 message = "Can't find holidays for a year to specified country and region";
                             } else {
@@ -320,9 +366,9 @@ export class HolidaysResourceService {
                             throw err
                         }
                     }));
-    
+
                 } else {
-                    let message;
+                    let message: string;
                     if (countries_database.region_code != undefined) {
                         message = "Can't find holidays for a year to specified country and region";
                     } else {
