@@ -23,9 +23,9 @@ export class StatusOfDayResourceController {
                     "day": 1,
                     "month": 1,
                     "year": 2019,
-                    "week_day_number": 3,
-                    "week_day": "Wednesday",
-                    "to_date": "2018-12-31T22:00:00.000Z"
+                    "week_day_number": 2,
+                    "week_day": "Tueday",
+                    "to_date": "2019-01-01T00:00:00.000Z"
                 },
                 "status": "holiday"
             }
