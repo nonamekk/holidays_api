@@ -1,5 +1,5 @@
 import { Injectable, Inject, HttpException, HttpStatus} from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, MoreThan, Not, Repository } from 'typeorm';
 import { Country } from '../country/country.entity';
 import { Region } from '../region/region.entity';
 import { Day } from './day.entity';
@@ -152,6 +152,23 @@ export class DayEntityService {
   findByYear(year: number) {
     return this.dayRepository.find({
       where: {
+        year: year
+      },
+      order: {
+        "month": 'ASC'
+      }
+    })
+  }
+
+  /**
+   * Finds days by year, but only those which have week_day
+   * @param year 
+   * @returns 
+   */
+  findByYearWithWeekDay(year: number) {
+    return this.dayRepository.find({
+      where: {
+        week_day: Not(IsNull()),
         year: year
       },
       order: {

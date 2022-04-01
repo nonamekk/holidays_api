@@ -2,7 +2,7 @@ import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Country } from './country.entity';
 import { ICountry } from '../../integrations/holiday_callendar_api/callendar.interface';
-import { ICountryEntity } from './country.interface'
+import { ICountryEntity, ICountryEntityWithRegions } from './country.interface'
 import { Region } from '../region/region.entity';
 import { find } from 'rxjs';
 import { IHolidaysRequestError } from 'src/resources/holidays/holidays.interface';
@@ -53,8 +53,16 @@ export class CountryEntityService {
       .getOne();
   }
 
-  async findByWithRegions(country_name?: string, country_code?: string, region_code?: string) {
-    region_code = region_code.toLowerCase();
+  /**
+   * Finds country by given params, additionally returns requested region id
+   * guaranteeing that region code is contained for that country
+   * @param country_name 
+   * @param country_code 
+   * @param region_code 
+   * @returns 
+   */
+  async findByWithRegions(country_name?: string, country_code?: string, region_code?: string): Promise<ICountryEntityWithRegions> {
+    region_code = (region_code != undefined)?region_code.toLowerCase():undefined;
     let query: Promise<Country>;
 
     if (country_code === undefined && country_name === undefined) {
@@ -95,7 +103,8 @@ export class CountryEntityService {
                   day: x.to_date_day,
                   month: x.to_date_month,
                   year: x.to_date_year
-                }
+                },
+                workdays: (x.workdays)
               }
           }
         }
@@ -113,7 +122,8 @@ export class CountryEntityService {
             day: x.to_date_day,
             month: x.to_date_month,
             year: x.to_date_year
-          }
+          },
+          workdays: (x.workdays)
         }
       }
     )
@@ -208,6 +218,14 @@ export class CountryEntityService {
     .execute();
   }
 
+  /**
+   * Adds new days cached year
+   * 
+   * Query an update  
+   * @param country 
+   * @param year 
+   * @returns UpdateResult of the query
+   */
   async add_year(country: Country, year: number) {
     if (country.years == null || country.years == undefined) {
       country.years = [year];
@@ -218,8 +236,13 @@ export class CountryEntityService {
   }
 
 
-  // saves all countries with regions to the database from API, if there were no countries.
-  saveAllNew(x: ICountry[]) {
+  /**
+   * saves all countries with regions to the database from API, if there were no countries.
+   * @param x Country array
+   * @returns saved countries and saved regions 
+   * (returned from saving them (country won't have relations to regions))
+   */
+  async saveAllNew(x: ICountry[]) {
     let regions = [];
     let countries: Country[] = [];
     for (let i=0; i<x.length; i++) {
@@ -336,6 +359,11 @@ export class CountryEntityService {
     }
   }
 
+  /**
+   * Do holiday_types contain 'extra working day'?
+   * @param holiday_types 
+   * @returns answer
+   */
   private check_workday(holiday_types: string[]) {
     let types_length = holiday_types.length;
     let workdays = false;

@@ -20,20 +20,36 @@ export class CacherService {
 
     ) {}
 
-    async cache(countries_response: ICountry[], country_code: string, region_code: string | undefined, year: number, daysForThisYear: Promise<Day[]> | undefined) {
-        // ##############
+    /**
+     * Based on days and country/region - updates and creates
+     * 
+     * Caches countries, regions, days, updates cached year if days are provided.
+     * Obtains all data about the country entity from the database
+     * 
+     * Removes region_ids from lists and adds country_id instead 
+     * if all regions are contained under one list category (holiday_in..., workday_in...)
+     * 
+     * @param countries_response 
+     * @param country_code 
+     * @param region_code 
+     * @param year 
+     * @param daysForThisYear 
+     */
+    async cache_around_days(countries_response: ICountry[] | undefined, country_code: string, region_code: string | undefined, year: number, daysForThisYear: Promise<Day[]> | undefined) {
         // Cache new countries if there's difference
+        // after this is done, all countries must be in the database
+            // it may be skipped if we are sure, that the country is in the database
+            // in which case country_code and region_code must be from the database
         if (countries_response != undefined) {
             await this.try_cache_countries(countries_response);
         }
         
-        
-
-        // ##############
-        // trying to find region entity if region code was provided.
+        // finding saved enitities from the database
         let countryEntity: Country = undefined;
         let regionEntity: Region = undefined;
+
         if (region_code != undefined) {
+            // trying to find region entity from the db
             let a = await this.find_region_and_country_entities(
                 country_code, region_code);
             countryEntity = a.countryEntity;
@@ -42,6 +58,7 @@ export class CacherService {
             countryEntity = await this.countryEntityService.findByCodeWithRegions(country_code);
         }
         
+        // check if country or region has days saved under the year which was originally requested by user
         let region_has_year = false;
         let country_has_year = false;
         if (regionEntity != undefined) {
@@ -66,44 +83,16 @@ export class CacherService {
             }
             
         }
-        // ##############
-        // year in country/region guarantees that these days were checked previously.
-        
-        let mitigation_days_response_diff_done = false;
-        let days_database: Day[] = undefined;
-        if (!country_has_year || !region_has_year) {
-            // CACHING DAYS HERE.
-            // creating new days response, containing holidays and workdays.
 
-            // let a = await this.mitigate_days_response_difference(
-            //     regionEntity, countryEntity, year, daysForThisYear
-            // );
+        // year in country/region guarantees that these days were checked previously.
+        // if years were not found, update days and country/region
+        if (!country_has_year || !region_has_year) {
             await this.mitigate_days_response_difference(
                     regionEntity, countryEntity, year, daysForThisYear);
-            mitigation_days_response_diff_done = true;
-            // days_database = a.days_database;
         }
         
-        // check if all regions are checked by the year
-        // update years checked for country and/or region
-        // updates days by removing region_id and adding country_id for holidays_in... and workdays_in...
-
-        // FINALLY UPDATE COUNTRY TO HAVE YEARS, because workdays and holidays are found here.
-
-        if (daysForThisYear == undefined) {
-            days_database = await this.dayEntityService.findByYear(year)
-        } else {
-            if (mitigation_days_response_diff_done) {
-                // there will be a difference with preloaded days for the year.
-                days_database = await this.dayEntityService.findByYear(year)
-            } else {
-                days_database = await daysForThisYear
-            }
-        }
-        
-        days_database = await this.dayEntityService.findByYear(year);
         await this.mitigate_year(
-            year, countryEntity, regionEntity, days_database
+            year, countryEntity, regionEntity
         );
     }
   
@@ -116,11 +105,15 @@ export class CacherService {
             }
     }
 
-    // more to utilities than to cache service
+    /**
+     * Finds region and country entities from the database using codes
+     * @param country_code 
+     * @param region_code 
+     * @returns 
+     */
     async find_region_and_country_entities(country_code: string, region_code: string) {
         let countryEntity = await this.countryEntityService.findByCodeWithRegions(country_code);
         
-        console.log(countryEntity);
         let regionEntity = undefined;
         if (region_code != undefined) {
             for (let i=0; i< countryEntity.regions.length; i++){
@@ -142,29 +135,47 @@ export class CacherService {
         // return {countryEntity, regionEntity};
     }
 
+    /**
+     * Creates new days if none were saved, updates days from the t-p API
+     * Makes a request to find days by year to the t-p API
+     * 
+     * @param regionEntity 
+     * @param countryEntity 
+     * @param year 
+     * @param daysForThisYear 
+     * @returns days from response and days from the database
+     */
     async mitigate_days_response_difference(regionEntity: Region | undefined, countryEntity: Country, year: number, daysForThisYear?: Promise<Day[]>) {
         let region_entity_code = (regionEntity == undefined) ? undefined : (regionEntity.code);
                     
-        let days_response = await lastValueFrom(this.callendarService.getAllForYear(countryEntity.code, year, region_entity_code));
+        let days_response = lastValueFrom(this.callendarService.getAllForYear(countryEntity.code, year, region_entity_code));
         let days_database = (daysForThisYear == undefined)?
-            await this.dayEntityService.findByYear(year)
-        : await daysForThisYear;
+            this.dayEntityService.findByYear(year)
+        : daysForThisYear;
         
-        if (days_database.length == 0) {
+        if ((await days_database).length == 0) {
             // if no days are saved in the database create new days
-            let days = this.dayEntityService.create_array(days_response, countryEntity, regionEntity);
+            let days = this.dayEntityService.create_array((await days_response), countryEntity, regionEntity);
             await this.dayEntityService.saveArray(days);
         } else {
             // update if any are different
             console.log(regionEntity);
-            await this.dayEntityService.updateDifferent(days_response, days_database, countryEntity, regionEntity);                                    
+            await this.dayEntityService.updateDifferent((await days_response), (await days_database), countryEntity, regionEntity);                                    
         }
 
 
         return {days_response, days_database};
     }
 
-    async mitigate_year(year: number, countryEntity: Country, regionEntity: any, days_database: Day[]) {
+    /**
+     * Check if all region_ids are saved for the year, takes cached year from
+     * regions to country, by updating regions and country
+     * @param year 
+     * @param countryEntity 
+     * @param regionEntity 
+     * @param days_database 
+     */
+    async mitigate_year(year: number, countryEntity: Country, regionEntity: any) {
         if (regionEntity != undefined) {
             // check each region to have a year.
             // if year is contained in all regions, except region requested

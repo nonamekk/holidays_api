@@ -10,6 +10,7 @@ import { lastValueFrom, map, Observable, tap } from "rxjs";
 import { IMonthsObject } from "src/utilities/descriptor.interface";
 import { ICountry, IDay } from "src/integrations/holiday_callendar_api/callendar.interface";
 import { CacherService } from "src/cacher/cacher.service";
+import { ICountryEntityWithRegions } from "src/models/country/country.interface";
 
 
 
@@ -143,6 +144,37 @@ export class HolidaysResourceService {
     }
 
     /**
+     * Tries to throw if found in the database country date limits don't meet dates from request
+     * 
+     * @param country_database 
+     * @param req
+     * @throws HttpException with least or most available year for the country
+     */
+    tryThrowYearLimits(country_database: ICountryEntityWithRegions, req: HolidaysDtoRequest) {
+        if (country_database.starting_date.year > req.year) {
+            if (country_database.starting_date.month != 1 && country_database.starting_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+(country_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
+            } else {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+country_database.starting_date.year} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (country_database.starting_date.year == req.year) {
+            if (country_database.starting_date.month != 1 && country_database.starting_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "least available is"+(country_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (country_database.ending_date.year < req.year) {
+            if (country_database.ending_date.month != 1 && country_database.ending_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(country_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
+            } else {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(country_database.ending_date.year)} }, HttpStatus.BAD_REQUEST);
+            }
+        } else if (country_database.ending_date.year == req.year) {
+            if (country_database.ending_date.month != 1 && country_database.ending_date.day != 1) {
+                throw new HttpException({ "code": 400, "error": {year: "most available is"+(country_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
+            }
+        }
+    }
+
+    /**
      * #### Serves holiday days list that of requested.
      * 
      * Based on the config (hotload) api call will be made to collect data from the api,
@@ -210,32 +242,10 @@ export class HolidaysResourceService {
         
 
 
-        let countries_database = await this.countryEntityService.findByWithRegions(req.country_name, req.country_code, req.region_code);
+        let country_database = await this.countryEntityService.findByWithRegions(req.country_name, req.country_code, req.region_code);
         
-        if (countries_database.starting_date.year > req.year) {
-            if (countries_database.starting_date.month != 1 && countries_database.starting_date.day != 1) {
-                throw new HttpException({ "code": 400, "error": {year: "least available is"+(countries_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
-            } else {
-                throw new HttpException({ "code": 400, "error": {year: "least available is"+countries_database.starting_date.year} }, HttpStatus.BAD_REQUEST);
-            }
-        } else if (countries_database.starting_date.year == req.year) {
-            if (countries_database.starting_date.month != 1 && countries_database.starting_date.day != 1) {
-                throw new HttpException({ "code": 400, "error": {year: "least available is"+(countries_database.starting_date.year+1)} }, HttpStatus.BAD_REQUEST);
-            }
-        } else if (countries_database.ending_date.year < req.year) {
-            if (countries_database.ending_date.month != 1 && countries_database.ending_date.day != 1) {
-                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
-            } else {
-                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year)} }, HttpStatus.BAD_REQUEST);
-            }
-        } else if (countries_database.ending_date.year == req.year) {
-            if (countries_database.ending_date.month != 1 && countries_database.ending_date.day != 1) {
-                throw new HttpException({ "code": 400, "error": {year: "most available is"+(countries_database.ending_date.year-1)} }, HttpStatus.BAD_REQUEST);
-            }
-        }
 
-
-        if (countries_database == null) {
+        if (country_database == null) {
             // no country and/or region were found in the database
             let countries_response = await lastValueFrom(this.callendarService.getCountries());
             let country_code = await this.findCountryCodeUsingResponse(req, countries_response);
@@ -259,7 +269,7 @@ export class HolidaysResourceService {
                 });
                 return obs.pipe(tap(async ()=> {
                     // DO CACHE TO DATABASE>
-                    await this.cacherService.cache(
+                    await this.cacherService.cache_around_days(
                         countries_response, country_code, req.region_code, req.year, daysForThisYear
                     );
                 }),
@@ -270,14 +280,15 @@ export class HolidaysResourceService {
         } else {
             // country with regions was found.
             // country code must be defined
+            this.tryThrowYearLimits(country_database, req);
 
             let days_are_in_database = false;
             
-            if (countries_database.region_years != undefined) {
+            if (country_database.region_years != undefined) {
                 // region provided    
-                if (countries_database.region_years != null) {
-                for (let i=0; countries_database.region_years.length; i++) {
-                    if (countries_database.region_years[i] == req.year) {
+                if (country_database.region_years != null) {
+                for (let i=0; country_database.region_years.length; i++) {
+                    if (country_database.region_years[i] == req.year) {
                         days_are_in_database = true;
                         break;
                     }
@@ -287,9 +298,9 @@ export class HolidaysResourceService {
                 
             }
             if (!days_are_in_database) {
-                if (countries_database.country_years != null) {
-                for (let i=0; i<countries_database.country_years.length; i++) {
-                    if (countries_database.country_years[i] == req.year) {
+                if (country_database.country_years != null) {
+                for (let i=0; i<country_database.country_years.length; i++) {
+                    if (country_database.country_years[i] == req.year) {
                         days_are_in_database = true;
                     }
                 }} else {
@@ -302,7 +313,7 @@ export class HolidaysResourceService {
 
                 // make a request to the database 
                 return await this.dayEntityService.prepareHolidaysFromDatabaseToResponse(
-                    (await daysForThisYear), countries_database.country_id, countries_database.region_id
+                    (await daysForThisYear), country_database.country_id, country_database.region_id
                 );
                 
                 // return false;
@@ -322,10 +333,10 @@ export class HolidaysResourceService {
                         // values were loaded.
                         res_list_obs = hotloaded.list;
                     } else {
-                        res_list_obs = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
+                        res_list_obs = this.prepareHolidaysFromCallendar(country_database.country_code, req.year, country_database.region_code);
                     }
                 } else {
-                    res_list_obs = this.prepareHolidaysFromCallendar(countries_database.country_code, req.year, countries_database.region_code);
+                    res_list_obs = this.prepareHolidaysFromCallendar(country_database.country_code, req.year, country_database.region_code);
                 }
                 
 
@@ -342,8 +353,8 @@ export class HolidaysResourceService {
 
                     return obs.pipe(
                     tap(async () => {
-                        await this.cacherService.cache(
-                            undefined, countries_database.country_code, countries_database.region_code, req.year, daysForThisYear
+                        await this.cacherService.cache_around_days(
+                            undefined, country_database.country_code, country_database.region_code, req.year, daysForThisYear
                         )
                     }), 
                     map((x: {containing_days: boolean, result: IMonthsObject[], days: IDay[]}) => {
@@ -352,7 +363,7 @@ export class HolidaysResourceService {
                             return x.result;
                         } else {
                             let message: string;
-                            if (countries_database.region_code != undefined) {
+                            if (country_database.region_code != undefined) {
                                 message = "Can't find holidays for a year to specified country and region";
                             } else {
                                 message = "Can't find holidays for a year to specified country";
@@ -369,7 +380,7 @@ export class HolidaysResourceService {
 
                 } else {
                     let message: string;
-                    if (countries_database.region_code != undefined) {
+                    if (country_database.region_code != undefined) {
                         message = "Can't find holidays for a year to specified country and region";
                     } else {
                         message = "Can't find holidays for a year to specified country";
