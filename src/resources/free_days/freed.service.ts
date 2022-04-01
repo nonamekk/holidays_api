@@ -17,12 +17,12 @@ import { ConfigService } from 'src/config/config.service';
 import { DaysInMonthsService } from 'src/utilities/dim.service';
 import { DaysAndDim, IDayWithDayNumber } from './freed.interface';
 import { ListingService } from 'src/utilities/listing.service';
+import { CacherService } from 'src/cacher/cacher.service';
 
 
 @Injectable()
 export class FreeDaysResourceService {
     constructor(
-        // private readonly callendarService: CallendarService,
         private readonly countryEntityService: CountryEntityService,
         private readonly dayEntityService: DayEntityService,
         private readonly holidaysResourseService: HolidaysResourceService,
@@ -30,12 +30,12 @@ export class FreeDaysResourceService {
         private readonly callendarService: CallendarService,
         private readonly configService: ConfigService,
         private readonly dimService: DaysInMonthsService,
-        private readonly ls: ListingService
-        // private readonly holidaysResourceService: HolidaysResourceService
+        private readonly ls: ListingService,
+        private readonly cacherService: CacherService
     ) {}
 
 
-    async do_shit(req: HolidaysDtoRequest) {
+    async prepareMaxFoundDaysInRow(req: HolidaysDtoRequest) {
 
         // Identifies if all days for requested are saved, under region or country. 
         let isYear: {
@@ -45,14 +45,14 @@ export class FreeDaysResourceService {
 
 
         // Finding days that have week_days number (only sorted by month)
-        let days_promise: Promise<Day[]> = 
+        let database_days_promise: Promise<Day[]> = 
             this.dayEntityService.findByYearWithWeekDay(req.year);
-
+        
         // Finding country from the database, if region requested its id will be already included
         let db_country_promise: Promise<ICountryEntityWithRegions> = 
             this.countryEntityService.findByWithRegions(
                 req.country_name, req.country_code, req.region_code);
-        
+
         // Loading days from the third-party API if hotload is on
         let response_days_try = this.configService.getConfig().then(
             async cfg => {
@@ -64,50 +64,55 @@ export class FreeDaysResourceService {
             });
 
         // await country from database and nullify promise
-        let db_country = (await db_country_promise); 
+        // ryi = region-years-ids
+        let db_country_ryi = (await db_country_promise); 
         db_country_promise = null;
 
-        if (db_country != null) {
+        if (db_country_ryi != null) {
             // country found in the database
-            
-            // try country date limits
-            this.holidaysResourseService.tryThrowYearLimits(db_country, req);
 
-            // find if region or country has year of days saved
-            isYear = this.isYearOfDayCached(req, db_country);
+            // try country date limits
+            this.holidaysResourseService.tryThrowYearLimits(db_country_ryi, req);
+
+            
 
             // await days from database and nullify promise
-            let days = (await days_promise);
-            days_promise = null;
-        
+            let days = (await database_days_promise);
+            
             if (days.length != 0) {
-                // days were found, they need to be sorted by day
+                // country was found
+                // days were found (they need to be sorted by day)
+
+                // find if region or country has year of days saved
+                isYear = this.isYearOfDayCached(req, db_country_ryi);
+                
                 if (isYear.country_year_found != undefined) {
                     if (isYear.country_year_found) {
-                        // all days must be saved with country_id
+                        // all days must be with country_id
                         // squize info and return it
                         return this.createResponse(
                             this.addDayNumberFromDatabase(
                                 days, 
                                 this.dimService.getDaysAmmountsForYear(days[0].year), 
-                                db_country.country_id, 
-                                db_country.workdays,
+                                db_country_ryi.country_id, 
+                                db_country_ryi.workdays,
                                 undefined // no region_ids anywhere in days, even if region_id is provided
                             )
                         );
                     }
                 }
-                else if (isYear.region_year_found != undefined) {
+                if (isYear.region_year_found != undefined) {
                     if (isYear.region_year_found) {
-                        // all days must be saved with country_id or region_id
+                        
+                        // all days must be with country_id or region_id
                         // squize info and return it
                         return this.createResponse(
                             this.addDayNumberFromDatabase(
                                 days, 
                                 this.dimService.getDaysAmmountsForYear(days[0].year), 
-                                db_country.country_id, 
-                                db_country.workdays, 
-                                db_country.region_id
+                                db_country_ryi.country_id, 
+                                db_country_ryi.workdays, 
+                                db_country_ryi.region_id
                             )
                         );
                     }
@@ -130,7 +135,8 @@ export class FreeDaysResourceService {
             return this.statusOfDayResourceService.throwErrorFromResponse(tryLoadDay);
         }
 
-        // two option from here, either some days or no days were found at all.
+        // several option from here, either some days or no days were found at all.
+        // additionally there might be a chance of new country/region, so it needs to be awaited
         // will need to create or update existing if response contain data.
 
         // cached years of country or region used as a verification, that all
@@ -144,23 +150,46 @@ export class FreeDaysResourceService {
         // find free days 
         // return and cache
         return ((tryLoadDay.days_obs) as Observable<IDay[]>).pipe(
-            tap((days: IDay[]) => {
-                // need to check if new countries were created and await them first
-                // after new country were created
-                // update or create days to those countries/regions
-
-                // if no countries were found to update
-                // update or create days
-                days_promise.then(db_days => {
-                    if (db_days.length > 0) {
-                        // days were found in the database -> update days and create new
-                    } else {
-                        // days were not found in the database -> only create new
-                    }
-                })
+            tap((response_days: IDay[]) => {
+                // check if changes are required for countries to await
                 
-                // update days
-                console.log(days)
+                // update or create days with identifications 
+                // for which they were found to be workday or holiday
+
+                // update, set or mitigate 
+                // (saved days under year identificator)
+                // the cached_year for
+                // country or region
+                database_days_promise.then(async database_days => {
+
+                    let create_of_data: boolean = undefined;
+                    let update_in_data: boolean = undefined;
+                    if(tryLoadDay.countries_update_promise != undefined) {
+                        // perform countries change (create new or update by chance)
+                        let res = await tryLoadDay.countries_update_promise;
+                        if (this.isCreateResponse(res)) {
+                            create_of_data = true;
+                        } else {
+                            update_in_data = true;
+                        }
+                        // data returned cannot be used
+                        // division with create_of_data and update_in_data currently is useless
+                        // keep current format for future changes if such will take place
+                        // there're should be less requests to the database
+                        // there're should be a way to receive useful data on changing response
+                    }
+                    await this.cacherService.cacheAroundDays_withYears(
+                        req.country_name,
+                        req.country_code,
+                        req.region_code,
+                        db_country_ryi,
+                        req.year,
+                        database_days,
+                        response_days,
+                        create_of_data,
+                        update_in_data
+                    );
+                });
             }),
             map((days: IDay[]) => {
                 // squize info and return it
@@ -179,7 +208,7 @@ export class FreeDaysResourceService {
 
 
 
-            
+        // these are some old draft notes, will keep them for now
         
         // Database:
         // - get days with weekday number and sort days for each month
@@ -203,7 +232,28 @@ export class FreeDaysResourceService {
 
         // try to get days of specified year, that only has weekday number
         // hotload request to the api on year days (weekday, holiday (if country_name, then try ask database or get all countries))
+    }
 
+    /**
+     * Checks if return was from update or creation of countries/regions
+     * 
+     * Since there's no jointable link between saved countries and regions
+     * data provided cannot be further used, which means call to the database will be required
+     * 
+     * This function determines, what happened
+     * @param res 
+     * @returns 
+     */
+    isCreateResponse(res: any) {
+        try {
+            let o = (res as {
+                savedCountries: Country[];
+                savedRegions: Region[];
+            }).savedCountries;
+            return true;
+        } catch {
+            return false;
+        }
     }
 
 
@@ -949,10 +999,10 @@ export class FreeDaysResourceService {
             // this case will return value country_code as undefined
             e.country_name = es.addError(e.country_name, "not found");
         } else {
-            if ((!country_year_found) || (!region_year_found)) {
+            if (country_year_found == false && region_year_found == false) {
                 try {
                     days_obs = this.callendarService.getDay(starting_date,
-                        req.country_code, req.region_code, ending_date);
+                        country_code, req.region_code, ending_date);
                 } catch (e) {
                     return {
                         // identifies if method was called from hotload
@@ -1020,28 +1070,24 @@ export class FreeDaysResourceService {
      * @returns 
      */
     isYearOfDayCached(req: HolidaysDtoRequest, db_country: ICountryEntityWithRegions) {
-        let country_year_found = false;
-        let region_year_found = false;
-
-        if (db_country.country_years != null) {
-            for (let i = 0; i <db_country.country_years.length; i++) {
-                if (db_country.country_years[i] == req.year) {
-                    // identify that no check for none_in_countries and none_in_regions is required
-                    country_year_found = true;
-                    break;
-                }
-            }
-            if (!country_year_found) {
-                if (db_country.region_years != null) {
-                    for (let i = 0; i < db_country.region_years.length; i++) {
-                        if (db_country.region_years[i] == req.year) {
-                            region_year_found = true;
-                            break;
-                        }
-                    }
-                }
-            }
+        let res = {
+            "country_year_found": false,
+            "region_year_found": false
         }
-        return {country_year_found, region_year_found}
+
+        // check country years
+        if (this.ls.doesListContainValue(db_country.country_years, req.year)) {
+            res.country_year_found = true;
+            return res;
+        }
+
+        // check region years
+        if (this.ls.doesListContainValue(db_country.region_years, req.year)) {
+            res.region_year_found = true;
+            return res;
+        }
+        
+        // nothing found
+        return res;
     }
 }

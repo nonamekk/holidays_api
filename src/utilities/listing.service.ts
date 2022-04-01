@@ -6,8 +6,8 @@ export class ListingService {
   
     /**
      * Finds if the given list contain target value
-     * @param list 
-     * @param target 
+     * @param list where you want to find
+     * @param value what you want to find
      * @returns 
      */
     doesListContainValue(list: any[], value: any): boolean {

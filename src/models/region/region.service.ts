@@ -42,15 +42,33 @@ export class RegionEntityService {
 
   // better use just input, without interface, if interface will not be required, 
   // change to key: value
-  async update(region: IRegionEntity) {
-   let region_years = null;
-   if (region.years != null) {
-     if (region.years != undefined) {
-      if (region.years.length > 0) {
-        region_years = region.years
+  /**
+   * Updates region
+   * updates years, based on country_id, region_id or region_code
+   * 
+   * > better use just input, without interface, if interface will not be required
+   * @param region_id 
+   * @param region_code
+   * @param region_years 
+   * @returns 
+   */
+  async update(
+    region_id: number, 
+    region_years: number[] | undefined | null,
+    region_code?: string | undefined, 
+    // country_id?: number | undefined
+  ) {
+ 
+    if (region_years === undefined) {
+      region_years = null;
+    } else {
+      if (region_years !== null) {
+        if (region_years.length == 0) {
+          region_years = null;
+        }
       }
-     }
-   }
+    }
+
     let query = this.regionRepository
       .createQueryBuilder()
       .update()
@@ -58,17 +76,18 @@ export class RegionEntityService {
         years: region_years, // cant set the array. invalid input syntax for type smallint: "{"2022"}"
       });
 
-    if (region.country_id != undefined) {
-      query.where("countryId = :country_id", {country_id: region.country_id});
-    } else
-      if (region.id != undefined) {
-      query.where("id = :id", { id: region.id });
-    } else if (region.code != undefined) {
-      query.where("code = :code", {code: region.code});
+    // // allows to update all regions of country with same years, but it is risky as regions might be different
+    // if (country_id != undefined) {
+    //   query.where("countryId = :country_id", {country_id: country_id});
+    // } else
+    if (region_id != undefined) {
+      query.where("id = :id", { id: region_id });
+    } else if (region_code != undefined) {
+      query.where("code = :code", {code: region_code});
     } else {
       throw new HttpException("Can only update region if id or code is provided", HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    console.log(query.getQuery());
+    // console.log(query.getQuery());
     return query.execute();
   }
 
@@ -113,23 +132,23 @@ export class RegionEntityService {
           for (let i=0; i<country_entity.regions.length; i++) {
             if (country_entity.regions[i].id != region.id) {
               // country_entity.regions[i].years = (new_years_for_regions[i].length == 0) ? null : new_years_for_regions[i];
-              await this.update({"id": region.id, "code": region.code, "years": new_years_for_regions[i]})
+              await this.update(region.id, new_years_for_regions[i], region.code)
             }
           }
-          await this.countryEntityService.add_year(country_entity, year);
+          await this.countryEntityService.add_year(country_entity.id, country_entity.years, year);
         } else {
 
-          await this.update({"id": region.id, "code": region.code, "years": region.years});
+          await this.update(region.id, region.years, region.code);
         }
 
 
       } else {
-        await this.update({"id": region.id, "code": region.code, "years": region.years});
+        await this.update(region.id, region.years, region.code);
       }
 
 
     } else {
-      await this.update({"id": region.id, "code": region.code, "years": region.years});
+      await this.update(region.id, region.years, region.code);
     }
   }
 }

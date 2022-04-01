@@ -14,7 +14,7 @@ import { Day } from 'src/models/day/day.entity';
 import {DayStatus} from './status.type';
 import { WeekDaysEnum } from 'src/utilities/days.enum';
 import { DaysInMonthsService } from 'src/utilities/dim.service';
-import { HolidaysDtoRequest } from '../holidays/holidays.dto';
+import { ListingService } from 'src/utilities/listing.service';
 
 
 @Injectable()
@@ -24,7 +24,8 @@ export class StatusOfDayResourceService {
         private readonly configService: ConfigService,
         private readonly callendarService: CallendarService,
         private readonly countryEntityService: CountryEntityService,
-        private readonly dimService: DaysInMonthsService
+        private readonly dimService: DaysInMonthsService,
+        private readonly ls: ListingService
     ) {}
 
     /**
@@ -565,11 +566,11 @@ export class StatusOfDayResourceService {
                                     day_database
                                 );
                             } else {
-                                db_country_promise.then(db_country_promise => {
+                                db_country_promise.then(db_country => {
                                     this.dayEntityService.updateOneDayFromResponse(
                                         response_day, 
                                         (day_database),
-                                        (db_country_promise),
+                                        db_country,
                                         isYear.region_id
                                     ).finally();
                                 });
@@ -589,11 +590,11 @@ export class StatusOfDayResourceService {
                                 day_database
                             );
                         } else {
-                            db_country_promise.then(db_country_promise => {
+                            db_country_promise.then(db_country => {
                                 this.dayEntityService.createOneDayFromResponse(
                                     response_day, 
                                     req,
-                                    (db_country_promise).id,
+                                    db_country.id,
                                     isYear.region_id
                                 ).finally();
                             })
@@ -647,7 +648,7 @@ export class StatusOfDayResourceService {
         }>, 
         req: StatusDtoRequest, 
         response_day: IDay, 
-        day_database: Day) {
+        day_database: Day | undefined) {
 
         countries_update_promise.then(res => {
             try {
@@ -674,7 +675,7 @@ export class StatusOfDayResourceService {
      * @param day_database 
      * @throw HttpException
      */
-    async cacheDayForJustCreatedCountry(res: any, req: StatusDtoRequest, day_response: IDay, day_database: Day) {
+    async cacheDayForJustCreatedCountry(res: any, req: StatusDtoRequest, day_response: IDay, day_database: Day | undefined) {
         let newSavedCountries: Country[] = res.savedCountries;
 
         let obtainedCountry: Country = undefined;
@@ -878,7 +879,7 @@ export class StatusOfDayResourceService {
             // this case will return value country_code as undefined
             e.country_name = es.addError(e.country_name, "not found");
         } else {
-            if ((!country_year_found) || (!region_year_found)) {
+            if (country_year_found == false && region_year_found == false) {
                 try {
                     day_obs = this.callendarService.getDay(date, country_code, req.region_code);
                 } catch (e) {
@@ -951,43 +952,36 @@ export class StatusOfDayResourceService {
      * @returns 
      */
     isYearOfDayCached(req: StatusDtoRequest, db_country: Country) {
-        let country_year_found = false;
-        let region_year_found = false;
-        let region_id: number = undefined;
+        
+        let res = {
+            "country_year_found": false,
+            "region_year_found": false,
+            "region_id": undefined
+        };
 
         // next identify if day of requested year was saved, when full year list was requested.
-        if (db_country.years != null) {
-            for (let i = 0; i <db_country.years.length; i++) {
-                if (db_country.years[i] == req.year) {
-                    // identify that no check for none_in_countries and none_in_regions is required
+        if (this.ls.doesListContainValue(db_country.years, req.year)) {
+            res.country_year_found = true;
+        }
 
-                    country_year_found = true;
-                    break;
-                }
-            }
-            if (!country_year_found) {
+        if (req.region_code != undefined) {
+            if (db_country.regions != null) {
                 if (db_country.regions.length != 0) {
-                    for (let i = 0; i < db_country.regions.length; i++) {
+                    for (let i=0; i< db_country.regions.length; i++) {
                         if (db_country.regions[i].code == req.region_code) {
-                            if (db_country.regions[i].years != null) {
-                                for (let j = 0; j < db_country.regions[i].years.length; j++) {
-                                    if (db_country.regions[i].years[j] == req.year) {
-                                        region_year_found = true;
-                                        region_id = db_country.regions[i].id;
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
+                            res.region_id = db_country.regions[i].id;
 
+                            if (this.ls.doesListContainValue(db_country.regions[i].years, req.year)) {
+                                res.region_year_found = true;
+                            }
+                            return res;
                         }
                     }
                 }
-
             }
+            
         }
-
-        return {country_year_found, region_year_found, region_id}
+        return res;
     }
 
     /**

@@ -1,3 +1,5 @@
+import { Region } from "../region/region.entity"
+
 export interface ICountryEntity {
     id?: number,
     code: string,
@@ -30,5 +32,6 @@ export interface ICountryEntityWithRegions {
     country_name: string,
     starting_date: ISimpleDate,
     ending_date: ISimpleDate,
-    workdays: boolean
+    workdays: boolean,
+    regions: Region[]
 }

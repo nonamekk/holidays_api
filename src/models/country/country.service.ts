@@ -104,7 +104,8 @@ export class CountryEntityService {
                   month: x.to_date_month,
                   year: x.to_date_year
                 },
-                workdays: (x.workdays)
+                workdays: (x.workdays),
+                regions: x.regions
               }
           }
         }
@@ -123,7 +124,8 @@ export class CountryEntityService {
             month: x.to_date_month,
             year: x.to_date_year
           },
-          workdays: (x.workdays)
+          workdays: (x.workdays),
+          regions: x.regions
         }
       }
     )
@@ -226,13 +228,24 @@ export class CountryEntityService {
    * @param year 
    * @returns UpdateResult of the query
    */
-  async add_year(country: Country, year: number) {
-    if (country.years == null || country.years == undefined) {
-      country.years = [year];
+  async add_year(country_id: number, country_years: number[] | null | undefined, year: number) {
+    if (country_years == null || country_years == undefined) {
+      country_years = [year];
     } else {
-      country.years.push(year);
+      country_years.push(year);
     }
-    return await this.update(country);
+
+
+    return this.countryRepository
+    .createQueryBuilder()
+    .update()
+    .set({
+      years: country_years,
+    })
+    .where("id = :id", { id: country_id })
+    .execute();
+
+    // return await this.update(country);
   }
 
 

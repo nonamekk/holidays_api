@@ -10,10 +10,12 @@ import { CacherModule } from 'src/cacher/casher.module';
 import { StatusOfDayResourceController } from './status.controller';
 import { StatusOfDayResourceService } from './status.service';
 import { DaysInMonthsModule } from 'src/utilities/dim.module';
+import { ListingModule } from 'src/utilities/listing.module';
 
 @Module({
   imports: [CallendarModule, CountryEntityModule, DayEntityModule, DescriptorModule, ConfigModule, 
-    CacherModule, RegionEntityModule, DaysInMonthsModule],
+    CacherModule, RegionEntityModule, DaysInMonthsModule,
+    ListingModule],
   controllers: [StatusOfDayResourceController],
   providers: [StatusOfDayResourceService],
   exports: [StatusOfDayResourceService]

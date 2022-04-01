@@ -220,7 +220,7 @@ export class DayEntityService {
         date.workday_in_regions_ids = d.workday_in_regions_ids;
         date.none_in_countries_ids = d.none_in_countries_ids;
         date.none_in_regions_ids = d.none_in_regions_ids;
-        date.week_day = d.day_of_week;
+        date.week_day = d.week_day;
         
         return this.dayRepository.create(date);
     } else {
@@ -237,28 +237,28 @@ export class DayEntityService {
    * @param region 
    * @returns list of created days
    */
-  create_array(ds: IDay[], country: Country, region?: Region) {
+  create_array(ds: IDay[], country_id: number, region_id?: number) {
     let days: Day[] = [];
     for (let i=0; i<ds.length; i++) {
-      let date: IDayEntity = {
-        "day": 0
-      };
+      let date: IDayEntity = {};
+
       date.day = ds[i].date.day;
       date.month = ds[i].date.month;
       date.year = ds[i].date.year;
-      if (region != undefined) {
+      if (region_id != undefined) {
         if (ds[i].holidayType == 'public_holiday') {
-          date.holiday_in_regions_ids = [region.id]
+          date.holiday_in_regions_ids = [region_id]
         } else if (ds[i].holidayType = 'extra_working_day') {
-          date.workday_in_regions_ids = [region.id]
+          date.workday_in_regions_ids = [region_id]
         }
       } else {
         if (ds[i].holidayType == 'public_holiday') {
-          date.holiday_in_countries_ids = [country.id]
+          date.holiday_in_countries_ids = [country_id]
         } else if (ds[i].holidayType = 'extra_working_day') {
-          date.workday_in_countries_ids = [country.id]
+          date.workday_in_countries_ids = [country_id]
         }
       }
+      date.week_day = (ds[i].date.dayOfWeek) as WeekDay;
       days.push(this.dayRepository.create(date));
     }
     return days;
@@ -410,7 +410,7 @@ export class DayEntityService {
       .createQueryBuilder()
       .update()
       
-      if(d.day_of_week != undefined) {
+      if(d.week_day != undefined) {
         query.set({
           absolute: d.absolute,
           holiday_in_countries_ids: d.holiday_in_countries_ids,
@@ -419,7 +419,7 @@ export class DayEntityService {
           workday_in_regions_ids: d.workday_in_regions_ids,
           none_in_countries_ids: d.none_in_countries_ids,
           none_in_regions_ids: d.none_in_regions_ids,
-          week_day: d.day_of_week
+          week_day: d.week_day
         });
       } else query.set({
         absolute: d.absolute,
@@ -460,7 +460,13 @@ export class DayEntityService {
    * @param country_entity 
    * @param region_entity 
    */
-  async updateDifferent(days_response: IDay[], days_database: Day[], country_entity: Country, region_entity?: Region) {
+  async updateDifferent(
+      days_response: IDay[], 
+      days_database: Day[], 
+      country_entity_id: number,
+      country_entity_regions: Region[], 
+      region_entity_id?: number
+    ) {
     // array of update promises to await one by one
     let executions: Promise<void>[] = [];
     // array of created day entities
@@ -492,7 +498,7 @@ export class DayEntityService {
           }
 
           // check if region entity was set (if region code was requested)
-          if (region_entity != undefined) {
+          if (region_entity_id != undefined) {
             // check by ..._in_regions_ids arrays to check if requiring to update
             if (days_response[i].holidayType == 'public_holiday') {
               // day is public holiday for this region
@@ -502,7 +508,7 @@ export class DayEntityService {
               // region id must be present in the day entity, if it is not, change indicator
               if (days_database[j].holiday_in_regions_ids != null)
               for (let p=0; p<days_database[j].holiday_in_regions_ids.length; p++) {
-                if (days_database[j].holiday_in_regions_ids[p] == region_entity.id) {
+                if (days_database[j].holiday_in_regions_ids[p] == region_entity_id) {
                   region_is_in_array = true;
                   break;
                 }
@@ -512,7 +518,7 @@ export class DayEntityService {
               if (!region_is_in_array) {
                 if (days_database[j].holiday_in_countries_ids != null)
                 for (let p=0; p<days_database[j].holiday_in_countries_ids.length; p++) {
-                  if (days_database[j].holiday_in_countries_ids[p] == country_entity.id) {
+                  if (days_database[j].holiday_in_countries_ids[p] == country_entity_id) {
                     // missleading name
                     // but if the country is found, then all regions are found, hence region of question is found
                     region_is_in_array = true;
@@ -523,9 +529,9 @@ export class DayEntityService {
               // update array list if region_id wasn't found
               if (!region_is_in_array) {
                 if (days_database[j].holiday_in_regions_ids == null) {
-                  days_database[j].holiday_in_regions_ids = [region_entity.id]
+                  days_database[j].holiday_in_regions_ids = [region_entity_id]
                 } else {
-                  days_database[j].holiday_in_regions_ids.push(region_entity.id);
+                  days_database[j].holiday_in_regions_ids.push(region_entity_id);
                 }
                 staged_changes = true;
               }
@@ -538,7 +544,7 @@ export class DayEntityService {
               // region id must be present in the day entity, if it is not, change indicator
               if (days_database[j].workday_in_regions_ids != null)
               for (let p=0; p<days_database[j].workday_in_regions_ids.length; p++) {
-                if (days_database[j].workday_in_regions_ids[p] == region_entity.id) {
+                if (days_database[j].workday_in_regions_ids[p] == region_entity_id) {
                   region_is_in_array = true;
                 }
               }
@@ -547,7 +553,7 @@ export class DayEntityService {
               if (!region_is_in_array) {
                 if (days_database[j].workday_in_countries_ids != null)
                 for (let p=0; p<days_database[j].workday_in_countries_ids.length; p++) {
-                  if (days_database[j].workday_in_countries_ids[p] == country_entity.id) {
+                  if (days_database[j].workday_in_countries_ids[p] == country_entity_id) {
                     // missleading name
                     // but if the country is found, then all regions are found, hence region of question is found
                     region_is_in_array = true;
@@ -557,9 +563,9 @@ export class DayEntityService {
 
               if (!region_is_in_array) {
                 if (days_database[j].workday_in_regions_ids == null) {
-                  days_database[j].workday_in_regions_ids = [region_entity.id]
+                  days_database[j].workday_in_regions_ids = [region_entity_id]
                 } else {
-                  days_database[j].workday_in_regions_ids.push(region_entity.id);
+                  days_database[j].workday_in_regions_ids.push(region_entity_id);
                 }
                 staged_changes = true;
               }
@@ -568,13 +574,13 @@ export class DayEntityService {
             // check to see if all regions have saved to workday_in or holiday_in arrays
             // if all regions are saved, empty list from occurencies and save country_id to workday or holiday
 
-            let total_number_of_regions = country_entity.regions.length;
+            let total_number_of_regions = country_entity_regions.length;
             if (days_database[j].holiday_in_regions_ids != null)
             if (days_database[j].holiday_in_regions_ids.length == total_number_of_regions) {
               let counter = total_number_of_regions;
               for (let p=0; p<days_database[j].holiday_in_regions_ids.length; p++) {
-                for (let z=0; z<country_entity.regions.length; z++) {
-                  if (country_entity.regions[z].id == days_database[j].holiday_in_regions_ids[z]) {
+                for (let z=0; z<country_entity_regions.length; z++) {
+                  if (country_entity_regions[z].id == days_database[j].holiday_in_regions_ids[z]) {
                     counter -= 1;
                     delete days_database[j].holiday_in_regions_ids[z];
                   }
@@ -592,9 +598,9 @@ export class DayEntityService {
                 days_database[j].holiday_in_regions_ids = new_regions_list;
 
                 if (days_database[j].holiday_in_countries_ids != null) {
-                  days_database[j].holiday_in_countries_ids = [country_entity.id]
+                  days_database[j].holiday_in_countries_ids = [country_entity_id]
                 } else {
-                  days_database[j].holiday_in_countries_ids.push(country_entity.id);
+                  days_database[j].holiday_in_countries_ids.push(country_entity_id);
                 }
                 // this change should not be required here, but keep it just in case(?)
                 staged_changes = true;
@@ -614,15 +620,15 @@ export class DayEntityService {
               let counry_is_in_array = false;
               if (days_database[j].holiday_in_countries_ids != null)
               for (let p=0; p<days_database[j].holiday_in_countries_ids.length; p++) {
-                if (days_database[j].holiday_in_countries_ids[p] == country_entity.id) {
+                if (days_database[j].holiday_in_countries_ids[p] == country_entity_id) {
                   counry_is_in_array = true;
                 }
               }
               if (!counry_is_in_array) {
                 if (days_database[j].holiday_in_countries_ids != null) {
-                  days_database[j].holiday_in_countries_ids.push(country_entity.id);
+                  days_database[j].holiday_in_countries_ids.push(country_entity_id);
                 } else {
-                  days_database[j].holiday_in_countries_ids = [country_entity.id];
+                  days_database[j].holiday_in_countries_ids = [country_entity_id];
                 }
                 staged_changes = true;
               }
@@ -630,15 +636,15 @@ export class DayEntityService {
               let country_is_in_array = false;
               if (days_database[j].workday_in_countries_ids != null)
               for (let p=0; p<days_database[j].workday_in_countries_ids.length; p++) {
-                if (days_database[j].workday_in_countries_ids[p] == country_entity.id) {
+                if (days_database[j].workday_in_countries_ids[p] == country_entity_id) {
                   country_is_in_array = true;
                 }
               }
               if (!country_is_in_array) {
                 if (days_database[j].workday_in_countries_ids != null) {
-                  days_database[j].workday_in_countries_ids.push(country_entity.id);
+                  days_database[j].workday_in_countries_ids.push(country_entity_id);
                 } else {
-                  days_database[j].workday_in_countries_ids = [country_entity.id];
+                  days_database[j].workday_in_countries_ids = [country_entity_id];
                 }
                 staged_changes = true;
               }
@@ -660,17 +666,17 @@ export class DayEntityService {
             day.year = days_response[i].date.year;
             day.week_day = days_response[i].date.dayOfWeek as WeekDay;
 
-            if (region_entity != undefined) {
+            if (region_entity_id != undefined) {
               if (days_response[i].holidayType == 'public_holiday') {
-                day.holiday_in_regions_ids = [region_entity.id];
+                day.holiday_in_regions_ids = [region_entity_id];
               } else if (days_response[i].holidayType = 'extra_working_day') {
-                day.workday_in_regions_ids = [region_entity.id];
+                day.workday_in_regions_ids = [region_entity_id];
               
             } else {
               if (days_response[i].holidayType == 'public_holiday') {
-                day.holiday_in_countries_ids = [country_entity.id];
+                day.holiday_in_countries_ids = [country_entity_id];
               } else if (days_response[i].holidayType = 'extra_working_day') {
-                day.workday_in_countries_ids = [country_entity.id]
+                day.workday_in_countries_ids = [country_entity_id]
               }
             }
             // push created day entity to creations to execute save as array
@@ -763,7 +769,7 @@ export class DayEntityService {
       new_day.day = day_response.date.day;
       new_day.month = day_response.date.month;
       new_day.year = day_response.date.year;
-      new_day.day_of_week = day_response.date.dayOfWeek as WeekDay;
+      new_day.week_day = day_response.date.dayOfWeek as WeekDay;
 
       if (day_response.holidayType == 'public_holiday') {
         if (region_id != undefined) {
@@ -912,7 +918,7 @@ export class DayEntityService {
   async tryUpdateCountryCachedYear(country_entity: Country, all_days: Day[], year: number) {
     if (this.doesCountryRequireUpdateOfYear(country_entity, all_days, year)) {
       // country has all days cached for specified year.
-      await this.countryEntityService.add_year(country_entity, year);
+      await this.countryEntityService.add_year(country_entity.id, country_entity.years, year);
       await this.removeCountryFromNoneIn(country_entity, all_days);
     }
   }
@@ -934,6 +940,7 @@ export class DayEntityService {
       for (let i=0; i<country_entity.regions.length; i++) {
         if (country_entity.regions[i].id == region_id) {
           region_entity = country_entity.regions[i];
+          break;
         }
       }
       if (region_entity == undefined) {

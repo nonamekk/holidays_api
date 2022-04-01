@@ -17,7 +17,7 @@ export class FreeDaysResourceController {
     async getFreeDays(
         @Query() req: HolidaysDtoRequest
     ) {
-        return await this.freeDaysResourceService.do_shit(
+        return await this.freeDaysResourceService.prepareMaxFoundDaysInRow(
             this.holidaysResourceService.validateRequest(req)
         );
     }

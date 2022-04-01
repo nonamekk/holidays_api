@@ -207,7 +207,7 @@ export class HolidaysResourceService {
      */
     async serveHolidaysList(req: HolidaysDtoRequest): Promise<IMonthsObject[] | Observable<IMonthsObject[]>> {
 
-        let daysForThisYear = this.dayEntityService.findByYear(req.year);
+        let db_days = this.dayEntityService.findByYear(req.year);
 
         // If hotload is on, this will prepare holidays for each month from the API.
         // This can be served in case no data in the database.
@@ -270,7 +270,7 @@ export class HolidaysResourceService {
                 return obs.pipe(tap(async ()=> {
                     // DO CACHE TO DATABASE>
                     await this.cacherService.cache_around_days(
-                        countries_response, country_code, req.region_code, req.year, daysForThisYear
+                        countries_response, country_code, req.region_code, req.year, db_days, days_response
                     );
                 }),
                 map((x:IMonthsObject[])=> {
@@ -313,7 +313,7 @@ export class HolidaysResourceService {
 
                 // make a request to the database 
                 return await this.dayEntityService.prepareHolidaysFromDatabaseToResponse(
-                    (await daysForThisYear), country_database.country_id, country_database.region_id
+                    (await db_days), country_database.country_id, country_database.region_id
                 );
                 
                 // return false;
@@ -352,9 +352,9 @@ export class HolidaysResourceService {
                     });
 
                     return obs.pipe(
-                    tap(async () => {
+                    tap(async (x: {containing_days: boolean, result: IMonthsObject[], days: IDay[]}) => {
                         await this.cacherService.cache_around_days(
-                            undefined, country_database.country_code, country_database.region_code, req.year, daysForThisYear
+                            undefined, country_database.country_code, country_database.region_code, req.year, db_days, x.days
                         )
                     }), 
                     map((x: {containing_days: boolean, result: IMonthsObject[], days: IDay[]}) => {

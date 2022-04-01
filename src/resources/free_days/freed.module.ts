@@ -19,7 +19,7 @@ import { StatusOfDayResourceModule } from '../status/status.module';
   imports: [ DayEntityModule, RegionEntityModule, CountryEntityModule,
     CallendarModule, ConfigModule, CacherModule, 
     HolidaysResourceModule, DaysInMonthsModule, ListingModule,
-    StatusOfDayResourceModule
+    StatusOfDayResourceModule, CacherModule
 ],
   controllers: [FreeDaysResourceController],
   providers: [FreeDaysResourceService],
