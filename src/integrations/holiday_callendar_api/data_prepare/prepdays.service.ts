@@ -493,7 +493,7 @@ export class CallendarPrepareService {
      */
     async tryGetCountryCodeFromApi(country_name: string) {
         // get all countries from database
-        let countries_database_promise = this.countryEntityService.findAll();
+        let countries_database_promise = this.countryEntityService.findAllWithRegions();
         // get all countries from response
         let countries_response = await lastValueFrom(this.callendarService.getCountries());
 

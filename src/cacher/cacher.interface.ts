@@ -4,6 +4,32 @@ import { ICountryEntityWithRegions, ISimpleDate } from "src/models/country/count
 import { Day } from "src/models/day/day.entity";
 import { Region } from "src/models/region/region.entity";
 
+/**
+ * CacheAroundDays input values
+ * 
+ * ---
+ * - country_name
+ * - country_code
+ * - region_code
+ * - year
+ * ---
+ * - rp_countries - is provided - create or update countries in the database with this list
+ * - db_country_ryi - is not provided - collect from database, if not found from t-p API
+ * ---
+ * - db_days - is not provided - collect all days of requested year. ignores if empty array
+ * - rp_days - is not provided - collect days by provided country code (and region) from t-p API.
+ *  ignores if empty array
+ * ---
+ * - countries_update_promise - is provided - nullifies given db_country_ryi and gets it from the database
+ * - operation_for_one_day - is provided - has to be true to only create or update ONE day 
+ *  (not doing mitigate_days_response_difference since it is for saving whole year of days)
+ * ---
+ * - date_requested - operation_for_one_day and this is provided - create the day in the database
+ * - db_day_for_one_day - operation_for_one_day and this is provided - update the given day in the database
+ * with the day from the response
+ * 
+ * If **date_requested** is provided, will not check for **db_day_for_one day**
+ */
 export interface ICacheAroundDays {
     /**
      * Country name
@@ -54,7 +80,7 @@ export interface ICacheAroundDays {
      * Days obtained from the t-p API response
      * 
      * If not provided will collect all days of requested 
-     * country (and region) from the t-p API
+     * country_code (and region_code) from the t-p API
      * 
      */
     rp_days?: IDay[] | undefined,
@@ -85,16 +111,16 @@ export interface ICacheAroundDays {
     operation_for_one_day?: boolean,
 
     /**
-     * Is required when operation_for_one_day is true
+     * Used for creating the day
      * 
-     * Used for creating new or updating day
+     * If operation_for_one_day and this is provided only create the day
      */
     date_requested?: ISimpleDate,
 
     /**
      * Day that needs to be updated
      * 
-     * Required when operation_for_one_day is true
+     * If operation_for_one_day and this is provided only update the day
      */
     db_day_for_one_day?: Day
 }

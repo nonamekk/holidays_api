@@ -1,8 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany } from 'typeorm';
-import { Day } from '../day/day.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Region } from '../region/region.entity';
-
-// smallint
 
 @Entity()
 export class Country {
@@ -86,7 +83,7 @@ export class Country {
     nullable: false
   })
   to_date_day: number;
-
+  
   // @ManyToMany(
   //   type => Day, 
   //   day => day.holiday_in_countries

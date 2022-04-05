@@ -922,7 +922,8 @@ export class StatusOfDayResourceService {
                     } else {
 
                         let rp_countries = await lastValueFrom(this.callendarService.getCountries());
-
+                        
+                        // updating day in the database here
                         await this.cacherService.cacheAroundDays({
                             // updating countries from t-p API. not found in database
                             rp_countries,
@@ -936,8 +937,6 @@ export class StatusOfDayResourceService {
                             countries_update_promise: tryLoadDay.countries_update_promise,
                             // identifying the operation is only for one day
                             operation_for_one_day: true,
-                            // specifying date_requested to update day
-                            date_requested: req,
                             db_day_for_one_day: db_day
                         });
                     }

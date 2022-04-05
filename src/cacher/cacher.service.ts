@@ -200,37 +200,49 @@ export class CacherService {
     }
 
     /**
-     * Updates or creates days in the database, 
+     * #### Updates or creates days in the database
      * 
-     * saves identications that days for year are saved or
-     * takes identications from all regions if all regions
-     * have days saved and saves it under country 
+     * ---
+     * 
+     * Saves country identications that days for year are 
+     * saved (cached_year) or takes identications from 
+     * all regions if regions have days saved and saves it 
+     * under country's cached_years (by mitigation)
      * 
      * identification is the cached_year
      * 
-     * Pools country/region from database, 
+     * ---
+     * 
+     * Gets country/region from database 
      * if previous manipulations with it were identified
      * (new were created or old were updated by chance)
      * 
-     * @param country_name required to find from database
-     * @param country_code required to find from database
-     * @param region_code required to find from database
+     * If country (with region) were not found in the database,
+     * gets countries from the t-p API
+     * 
+     * ---
+     * 
+     * Removes region_ids from lists of day and adds country_id
+     * instead, if found that all regions are contained under
+     * the same list (holiday_in.., workday_in.. or none_in..)
+     * 
+     * @param input
+     *  
+     * 
+     * @param country_name
+     * @param country_code
+     * @param region_code
+     * @param year
+     * @param rp_countries 
      * @param db_country_ryi db_country from database with ryi (regions, years and ids)
-     * @param year requested year
-     * @param db_days days from database, if found any. 
-     * @param response_days days from response, if was made ever
-     * @param create_of_data countries were just created
-     * @param update_in_data countries were just updated
+     * @param db_days days from database 
+     * @param rp_days days from response
+     * @param countries_update_promise 
+     * @param operation_for_one_day 
+     * @param date_requested
+     * @param db_day_for_one_day
      */
-    async cacheAroundDays(
-        input: ICacheAroundDays
-        // create_of_data?: boolean | undefined,
-        // update_in_data?: boolean | undefined
-
-        // good idea to use data from creation response, but cuurent has no relation from jointable
-        // allSavedCountries: Country[]
-        // allSavedRegions: Region[]
-    ) {
+    async cacheAroundDays(input: ICacheAroundDays) {
 
         if (input.countries_update_promise != undefined) {
             (this.isResponseAfterCreate(await input.countries_update_promise))
@@ -299,8 +311,17 @@ export class CacherService {
                         if (input.db_days == undefined) {
                             // create new day
                             // don't check any days on if they are totalled, because there're none
-                            if (input.date_requested != undefined) {
-                                if (input.db_day_for_one_day != undefined) {
+                            if (input.db_day_for_one_day != undefined) {
+                                if (input.date_requested != undefined) {
+                                    // create
+                                    await this.dayEntityService.createOneDayFromResponse(
+                                        input.rp_days[0],
+                                        input.date_requested,
+                                        input.db_country_ryi.country_id,
+                                        input.db_country_ryi.region_id
+                                    );
+                                } else {
+                                    // update existing
                                     await this.dayEntityService.updateOneDayFromResponse(
                                         input.rp_days[0],
                                         input.db_day_for_one_day,
@@ -309,15 +330,7 @@ export class CacherService {
                                         input.db_country_ryi.country_years,
                                         input.db_country_ryi.region_id
                                     );
-                                } else {
-                                    await this.dayEntityService.createOneDayFromResponse(
-                                        input.rp_days[0],
-                                        input.date_requested,
-                                        input.db_country_ryi.country_id,
-                                        input.db_country_ryi.region_id
-                                    );
                                 }
-                                
                             }
                             
                         } 

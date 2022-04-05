@@ -29,7 +29,7 @@ export interface ISimpleDate {
  * - country and region ids
  * - country and region codes
  * - country and region years
- * - date limits (starting and ending),
+ * - date limits from t-p API (starting and ending),
  * - all regions as entities,
  * - workdays identificator
  */
