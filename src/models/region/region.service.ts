@@ -100,24 +100,30 @@ export class RegionEntityService {
    * @param country_entity if provided, try to check if all other regions have @param year cached and if they do, 
    * remove year from all regions and update country with that year set as cached
    */
-  async add_year(region: Region, year: number, country_entity?: Country) {
-    if (country_entity != undefined) {
+  async add_year(
+    region: Region, 
+    year: number, 
+    db_country_id?: number, 
+    db_country_regions?: Region[], 
+    db_country_years?: number[]
+  ) {
+    if (db_country_id != undefined && db_country_regions != undefined) {
       let do_remove = false;
       let new_years_for_regions = [];
       // do additional check to see if can remove years from all other regions and add it to year instead.
-      if (country_entity.regions.length != 0) {
-        for (let i=0; i<country_entity.regions.length; i++) {
+      if (db_country_regions.length != 0) {
+        for (let i=0; i<db_country_regions.length; i++) {
           new_years_for_regions.push([]);
-          if (country_entity.regions[i].id != region.id) {
-            if (country_entity.regions[i].years != null) {
+          if (db_country_regions[i].id != region.id) {
+            if (db_country_regions[i].years != null) {
               let inner_change = false;
-              for (let j=0; j<country_entity.regions[i].years.length; j++) {
-                if (country_entity.regions[i].years[j] == year) {
+              for (let j=0; j<db_country_regions[i].years.length; j++) {
+                if (db_country_regions[i].years[j] == year) {
                   do_remove = true;
                   inner_change = true;
                   break;
                 } else {
-                  new_years_for_regions[i] = country_entity.regions[i].years[j];
+                  new_years_for_regions[i] = db_country_regions[i].years[j];
                 }
               }
               if (!inner_change) {
@@ -129,13 +135,13 @@ export class RegionEntityService {
           }
         }
         if (do_remove) {
-          for (let i=0; i<country_entity.regions.length; i++) {
-            if (country_entity.regions[i].id != region.id) {
+          for (let i=0; i<db_country_regions.length; i++) {
+            if (db_country_regions[i].id != region.id) {
               // country_entity.regions[i].years = (new_years_for_regions[i].length == 0) ? null : new_years_for_regions[i];
               await this.update(region.id, new_years_for_regions[i], region.code)
             }
           }
-          await this.countryEntityService.add_year(country_entity.id, country_entity.years, year);
+          await this.countryEntityService.add_year(db_country_id, db_country_years, year);
         } else {
 
           await this.update(region.id, region.years, region.code);

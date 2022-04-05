@@ -258,6 +258,7 @@ export class CountryEntityService {
   async saveAllNew(x: ICountry[]) {
     let regions = [];
     let countries: Country[] = [];
+
     for (let i=0; i<x.length; i++) {
         if (x[i].regions.length != 0) {
             for (let j=0; j<x[i].regions.length; j++) {
@@ -272,8 +273,10 @@ export class CountryEntityService {
     let regionsToSave = [];
     let total = regions.length;
     let ticker = 0;
-    return this.save_array(countries).then(savedCountries => {
-        for (let i=0; i<savedCountries.length; i++) {
+    return this.save_array(countries).then(async savedCountries => {
+
+      for (let i=0; i<savedCountries.length; i++) {
+
             for (let j=0; j<regions.length; j++) {
                 if (savedCountries[i].code == regions[j].country_code) {
                     regionsToSave.push(this.regionEntityService.create(regions[j].region_code, savedCountries[i]));
@@ -288,7 +291,7 @@ export class CountryEntityService {
         return this.regionEntityService.save_array(regionsToSave).then(savedRegions => {
           return {savedCountries, savedRegions}
         });
-    })
+    });
   }
 
   async tryUpdateFromAPI(x:Country[], call_list: ICountry[]) {

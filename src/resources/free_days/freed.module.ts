@@ -14,12 +14,15 @@ import { HolidaysResourceModule } from '../holidays/holidays.module';
 import { DaysInMonthsModule } from 'src/utilities/dim.module';
 import { ListingModule } from 'src/utilities/listing.module';
 import { StatusOfDayResourceModule } from '../status/status.module';
+import { CallendarPrepareModule } from 'src/integrations/holiday_callendar_api/data_prepare/prepdays.module';
+import { DateLimitsThrowingModule } from 'src/utilities/throwers/date_limits/date_limits.module';
 
 @Module({
   imports: [ DayEntityModule, RegionEntityModule, CountryEntityModule,
     CallendarModule, ConfigModule, CacherModule, 
     HolidaysResourceModule, DaysInMonthsModule, ListingModule,
-    StatusOfDayResourceModule, CacherModule
+    StatusOfDayResourceModule, CacherModule,
+    CallendarPrepareModule, DateLimitsThrowingModule
 ],
   controllers: [FreeDaysResourceController],
   providers: [FreeDaysResourceService],

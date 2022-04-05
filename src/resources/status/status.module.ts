@@ -11,11 +11,13 @@ import { StatusOfDayResourceController } from './status.controller';
 import { StatusOfDayResourceService } from './status.service';
 import { DaysInMonthsModule } from 'src/utilities/dim.module';
 import { ListingModule } from 'src/utilities/listing.module';
+import { CallendarPrepareModule } from 'src/integrations/holiday_callendar_api/data_prepare/prepdays.module';
+import { DateLimitsThrowingModule } from 'src/utilities/throwers/date_limits/date_limits.module';
 
 @Module({
-  imports: [CallendarModule, CountryEntityModule, DayEntityModule, DescriptorModule, ConfigModule, 
+  imports: [CallendarModule, CountryEntityModule, DayEntityModule, DescriptorModule, 
     CacherModule, RegionEntityModule, DaysInMonthsModule,
-    ListingModule],
+    CallendarPrepareModule, DateLimitsThrowingModule],
   controllers: [StatusOfDayResourceController],
   providers: [StatusOfDayResourceService],
   exports: [StatusOfDayResourceService]

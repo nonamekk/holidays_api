@@ -22,6 +22,17 @@ export interface ISimpleDate {
     year: number
 }
 
+/**
+ * Country data from the database with ryi (region, years and ids)
+ * 
+ * Contains:
+ * - country and region ids
+ * - country and region codes
+ * - country and region years
+ * - date limits (starting and ending),
+ * - all regions as entities,
+ * - workdays identificator
+ */
 export interface ICountryEntityWithRegions {
     region_id?: number,
     region_years?: number[],
