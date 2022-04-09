@@ -83,22 +83,4 @@ export class Country {
     nullable: false
   })
   to_date_day: number;
-  
-  // @ManyToMany(
-  //   type => Day, 
-  //   day => day.holiday_in_countries
-  // )
-  // holiday_in_countries!: Day[];
-
-  // @ManyToMany(
-  //   type => Day, 
-  //   day => day.workday_in_countries
-  // )
-  // workday_in_countries!: Day[];
-
-  // @ManyToMany(
-  //   type => Day, 
-  //   day => day.none_in_countries
-  // )
-  // none_in_countries!: Day[];
 }

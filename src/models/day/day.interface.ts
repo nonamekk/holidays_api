@@ -1,5 +1,3 @@
-// import { Country } from "../country/country.entity";
-// import { Region } from "../region/region.entity";
 import {WeekDay} from "./day.type";
 
 export interface IDayEntity {
