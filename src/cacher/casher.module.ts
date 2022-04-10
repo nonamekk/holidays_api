@@ -3,12 +3,10 @@ import { CallendarModule } from 'src/integrations/holiday_callendar_api/callenda
 import { CountryEntityModule } from 'src/models/country/country.module';
 import { DayEntityModule } from 'src/models/day/day.module';
 import { RegionEntityModule } from 'src/models/region/region.module';
-import { ListingModule } from 'src/utilities/listing.module';
 import { CacherService } from './cacher.service';
 
 @Module({
-  imports: [CallendarModule, RegionEntityModule, CountryEntityModule, DayEntityModule,
-  ListingModule],
+  imports: [CallendarModule, RegionEntityModule, CountryEntityModule, DayEntityModule],
   providers: [CacherService],
   exports: [CacherService],
 })

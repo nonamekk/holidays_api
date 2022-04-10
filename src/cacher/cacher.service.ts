@@ -9,7 +9,6 @@ import { Day } from "src/models/day/day.entity";
 import { DayEntityService } from "src/models/day/day.service";
 import { Region } from "src/models/region/region.entity";
 import { RegionEntityService } from "src/models/region/region.service";
-import { ListingService } from "src/utilities/listing.service";
 import { ICacheAroundDays } from "./cacher.interface";
 
 
@@ -20,162 +19,7 @@ export class CacherService {
         private readonly callendarService: CallendarService,
         private readonly dayEntityService: DayEntityService,
         private readonly regionEntityService: RegionEntityService,
-        private readonly ls: ListingService
-
     ) {}
-
-    // /**
-    //  * Based on days and country/region - updates and creates countries/regions and days
-    //  * 
-    //  * Gets days from t-p API when tries to mitigate, where tries to create or update days
-    //  * If countries_response not given, makes a request to the t-p API to get all of them
-    //  * 
-    //  * Caches countries, regions, days, updates cached year if days are provided.
-    //  * Obtains all data about the country entity from the database
-    //  * 
-    //  * Removes region_ids from lists and adds country_id instead 
-    //  * if all regions are contained under one list category (holiday_in..., workday_in...)
-    //  * 
-    //  * @param countries_response countries from t-p API, if not set make a request to the t-p API
-    //  * @param country_code which is used to make request to the t-p API to find days
-    //  * @param region_code optional code to find by
-    //  * @param year 
-    //  * @param db_days is used when some days were found and might require an update, when compared to days from t-p API
-    //  * @param response_days if not set, request days from t-p API
-    //  */
-    // async cache_around_days(
-    //     countries_response: ICountry[] | undefined, 
-    //     country_code: string, 
-    //     region_code: string | undefined, 
-    //     year: number, 
-    //     db_days: Promise<Day[]> | undefined, 
-    //     response_days?:IDay[] | undefined
-    //     ) {
-    //     // Cache new countries if there's difference
-    //     // after this is done, all countries must be in the database
-    //         // it may be skipped if we are sure, that the country is in the database
-    //         // in which case country_code and region_code must be from the database
-    //     if (countries_response != undefined) {
-    //         await this.try_cache_countries(countries_response);
-    //     }
-
-    //     let res = await this.countryEntityService.findByWithRegions();
-        
-    //     // finding saved enitities from the database
-    //     let countryEntity: Country = undefined;
-    //     let regionEntity: Region = undefined;
-
-    //     if (region_code != undefined) {
-    //         // trying to find region entity from the db
-    //         let a = await this.find_region_and_country_entities(
-    //             country_code, region_code);
-    //         countryEntity = a.countryEntity;
-    //         regionEntity = a.regionEntity;
-    //     } else {
-    //         countryEntity = await this.countryEntityService.findByCodeWithRegions(country_code);
-    //     }
-        
-    //     // check if country or region has days saved under the year which was originally requested by user
-    //     let region_has_year = false;
-    //     let country_has_year = false;
-    //     if (regionEntity != undefined) {
-    //         if (regionEntity.years != null) {
-    //         for (let i=0; i<regionEntity.years.length; i++) {
-    //             if (regionEntity.years[i] == year) {
-    //                 region_has_year = true;
-    //             }
-    //         }} else {
-    //             // region doesn't have any years
-    //         }
-            
-    //     }
-    //     if (!region_has_year) {
-    //         if (countryEntity.years != null) {
-    //         for(let i=0; i<countryEntity.years.length; i++) {
-    //             if (countryEntity.years[i] == year) {
-    //                 country_has_year = true;
-    //             }
-    //         }} else {
-    //             // country doesn't have any years
-    //         }
-            
-    //     }
-
-    //     // year in country/region guarantees that these days were checked previously.
-    //     // if years were not found, update days and country/region
-    //     if (country_has_year == false || region_has_year == false) {
-    //         await this.mitigate_days_response_difference(
-    //                 (regionEntity == undefined)?
-    //                     undefined
-    //                 : regionEntity.code ,
-    //                 (regionEntity == undefined)?
-    //                     undefined
-    //                 : regionEntity.id, 
-    //                 countryEntity.id,
-    //                 countryEntity.code,
-    //                 countryEntity.regions, 
-    //                 year, 
-    //                 (db_days == undefined)?
-    //                     undefined
-    //                 : (await db_days), 
-    //                 response_days
-    //             );
-    //     }
-        
-    //     await this.mitigate_year_of_owner(
-    //         year, 
-    //         countryEntity.id,
-    //         countryEntity.regions,
-    //         countryEntity.years, 
-    //         (regionEntity == undefined)?
-    //             undefined
-    //         : regionEntity.code
-    //     );
-    // }
-
-
-    // async getCountryRegionEntities(year: number, country_code: string, region_code?: string) {
-    //     // finding saved enitities from the database
-    //     let countryEntity: Country = undefined;
-    //     let regionEntity: Region = undefined;
-
-    //     if (region_code != undefined) {
-    //         // trying to find region entity from the db
-    //         let a = await this.find_region_and_country_entities(
-    //             country_code, region_code);
-    //         countryEntity = a.countryEntity;
-    //         regionEntity = a.regionEntity;
-    //     } else {
-    //         countryEntity = await this.countryEntityService.findByCodeWithRegions(country_code);
-    //     }
-        
-    //     // check if country or region has days saved under the year which was originally requested by user
-    //     let region_has_year = false;
-    //     let country_has_year = false;
-    //     if (regionEntity != undefined) {
-    //         if (regionEntity.years != null) {
-    //         for (let i=0; i<regionEntity.years.length; i++) {
-    //             if (regionEntity.years[i] == year) {
-    //                 region_has_year = true;
-    //             }
-    //         }} else {
-    //             // region doesn't have any years
-    //         }
-            
-    //     }
-    //     if (!region_has_year) {
-    //         if (countryEntity.years != null) {
-    //         for(let i=0; i<countryEntity.years.length; i++) {
-    //             if (countryEntity.years[i] == year) {
-    //                 country_has_year = true;
-    //             }
-    //         }} else {
-    //             // country doesn't have any years
-    //         }
-            
-    //     }
-    //     return {countryEntity, regionEntity, country_has_year, region_has_year}
-    // }
 
      /**
      * Checks if return was from update or creation of countries/regions
@@ -202,6 +46,8 @@ export class CacherService {
     /**
      * #### Updates or creates days in the database
      * 
+     * Can work with one day or days of year
+     * 
      * ---
      * 
      * Saves country identications that days for year are 
@@ -225,6 +71,9 @@ export class CacherService {
      * Removes region_ids from lists of day and adds country_id
      * instead, if found that all regions are contained under
      * the same list (holiday_in.., workday_in.. or none_in..)
+     * 
+     * Does not remove region or country ids from none_in.. lists of day
+     * if all days are saved under that country/region year
      * 
      * @param input
      *  
@@ -260,16 +109,6 @@ export class CacherService {
             await this.try_cache_countries(input.rp_countries);
         }
 
-        // <removed>
-        // if country data was ever created or updated pull fresh data from the database
-        // good idea to use data from creation response, but current version has no relation from jointable
-        // if (create_of_data != undefined || update_in_data != undefined) {
-        //     if (create_of_data == true || update_in_data == true) {
-        //         db_country_ryi = await this.countryEntityService.findByWithRegions(country_code, country_name, region_code)
-        //     }
-        // }
-        // </removed>
-
         if (input.db_country_ryi == undefined) {
             input.db_country_ryi = await this.countryEntityService.findByWithRegions(
                 input.country_name, 
@@ -294,14 +133,23 @@ export class CacherService {
         if (input.db_country_ryi != undefined) {
             // at this point country_with_regions cannot be undefined
             // check if country or region has year
-            let country_has_year = this.ls.doesListContainValue(
-                input.db_country_ryi.country_years, 
-                input.year
-            );
-            let region_has_year = this.ls.doesListContainValue(
-                input.db_country_ryi.region_years, 
-                input.year
-            );
+            let country_has_year = false;
+            if (input.db_country_ryi.country_years != null)
+            for (let i=0; i<input.db_country_ryi.country_years.length; i++) {
+                if (input.db_country_ryi.country_years[i] == input.year) {
+                    country_has_year = true;
+                }
+            }
+            
+
+            let region_has_year = false;
+            if (input.db_country_ryi.region_years != null)
+            for (let i=0; i<input.db_country_ryi.region_years.length; i++) {
+                if (input.db_country_ryi.region_years[i] == input.year) {
+                    region_has_year = true;
+                }
+            }
+            
 
             if (country_has_year == false && region_has_year == false) {
 

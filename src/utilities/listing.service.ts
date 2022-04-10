@@ -6,8 +6,12 @@ export class ListingService {
   
     /**
      * Finds if the given list contain target value
+     * 
+     * Problem: copies input data, which takes more RAM
+     * 
      * @param list where you want to find
      * @param value what you want to find
+     * @deprecated
      * @returns 
      */
     doesListContainValue(list: any[], value: any): boolean {

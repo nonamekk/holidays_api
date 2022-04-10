@@ -16,6 +16,7 @@ export interface IHotLoadedTry {
     days_obs: Observable<IDay[]> | undefined
 }
 
+/**IDay with its day number in year (1-365/366) */
 export interface IDayWithDayNumber {
     day: IDay,
     day_number: number
@@ -29,6 +30,7 @@ export interface IDayWithDayNumber {
 //     workday: boolean
 // }
 
+/**IDay with its day number array AND dim (Days In each Month)*/
 export interface DaysAndDim {
     days: IDayWithDayNumber[],
     dim: number[]

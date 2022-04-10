@@ -5,7 +5,6 @@ import { StatusDtoRequest } from './status.dto';
 import { IDayStatusDate, IStatusOfDayRequestError } from './status.interface';
 import { ErrorService as es } from "src/errors/adderror.service";
 import { DayEntityService } from 'src/models/day/day.service';
-import { ConfigService } from 'src/config/config.service';
 import { lastValueFrom, map, Observable, tap } from 'rxjs';
 import { Country } from 'src/models/country/country.entity';
 import { Region } from 'src/models/region/region.entity';
@@ -105,61 +104,6 @@ export class StatusOfDayResourceService {
         }
     }
 
-    // throwBeforeError(starting_date: ISimpleDate) {
-    //     throw new HttpException({ 
-    //         "code": 400, 
-    //         "error": {
-    //             date: {
-    //                 year: starting_date.year,
-    //                 month: starting_date.month,
-    //                 day: starting_date.day
-    //             }
-    //         },
-    //         "message": "Dates before are not supported"
-    //     }, HttpStatus.BAD_REQUEST);
-    // }
-
-    // throwAfterError(ending_date: ISimpleDate) {
-    //     throw new HttpException({ 
-    //         "code": 400, 
-    //         "error": {
-    //             date: {
-    //                 year: ending_date.year,
-    //                 month: ending_date.month,
-    //                 day: ending_date.day
-    //             }
-    //         },
-    //         "message": "Dates after are not supported"
-    //     }, HttpStatus.BAD_REQUEST);
-    // }
-
-    // tryThrowDatesLimits(starting_date: ISimpleDate, ending_date: ISimpleDate, req: StatusDtoRequest) {
-    //     if (starting_date.year > req.year) {
-    //         this.throwBeforeError(starting_date);
-
-    //     } else if (starting_date.year == req.year) {
-    //         if (starting_date.month > req.month) {
-    //             this.throwBeforeError(starting_date)
-    //         } else if (starting_date.month == req.month) {
-    //             if (starting_date.day > req.day) {
-    //                 this.throwBeforeError(starting_date);
-    //             }
-    //         }
-
-    //     } else if (ending_date.year < req.year) {
-    //         this.throwAfterError(ending_date);
-    //     } else if (ending_date.year == req.year) {
-            
-    //         if (ending_date.month < req.month) {
-    //             this.throwBeforeError(ending_date)
-    //         } else if (ending_date.month == req.month) {
-    //             if (ending_date.day < req.day) {
-    //                 this.throwBeforeError(ending_date);
-    //             }
-    //         }
-    //     }
-    // }
-
     /**
      * Creates the response to the desired format
      * 
@@ -211,7 +155,6 @@ export class StatusOfDayResourceService {
         with_none?: boolean, 
         only_none?: boolean
     ) {
-        console.log(day_database);
         if (only_none != undefined) {
             if (only_none) {
                 if (day_database.none_in_regions_ids != null) {
@@ -323,8 +266,7 @@ export class StatusOfDayResourceService {
     /**
      * Tries to find the day status
      * 
-     * Checks by the cached year for country or region
-     * 
+     * Checks by the cached year of country or region
      * 
      * Based on the signals (cached year or region_id) check by country or by region 
      * and country until identified not found
@@ -332,7 +274,7 @@ export class StatusOfDayResourceService {
      * If region_year_found or region_id not undefined, check by region first.
      * 
      * @param day_database 
-     * @param db_country only required to contain id
+     * @param db_country_id
      * @param country_year_found shows if country has requested year days all in the database
      * @param region_year_found if region was requested, this might be true, if not it is always false
      * @param region_id the requested region_id. In addition to checking by country first, check by region if not found sufficient.
@@ -397,7 +339,7 @@ export class StatusOfDayResourceService {
      * returning observable with HttpException and await countries_update_promise,
      * else throws the same HttpException as in Observable.
      * 
-     * @param tryLoadDay 
+     * @param tryLoadDay contains any error and a promise to save/update countries and regions
      * @returns HttpException if error found or null if it wasn't 
      * @throws HttpException
      */
@@ -429,235 +371,6 @@ export class StatusOfDayResourceService {
         
     }
 
-    // /**
-    //  * Serves the day status
-    //  * 
-    //  * Tries to find country (with region) and requested day
-    //  * 
-    //  * If hotload is enabled, will send request to the third-party API to get the day from request
-    //  * 
-    //  * Checks found country (or region) to have days cached for requested year + finds region_id
-    //  * 
-    //  * Based on the data in the database, either present day status in the response or 
-    //  * present the data from third-party API in last case, caching the day.
-    //  * 
-    //  * If the country or region were not present, creates country/region first before assigning its ids to the day.
-    //  * 
-    //  * Updates the day with newly found country/region.
-    //  * 
-    //  * If the day was checked by every country/region, then it is absolute and none_in... lists are ignored.
-    //  * 
-    //  * 
-    //  * @param req 
-    //  * @returns 
-    //  * @throws HttpException
-    //  */
-    // async serveDayStatus2(req: StatusDtoRequest) {
-    //     let db_country_promise2: Promise<Country> =
-    //         (req.country_code != undefined) ?
-    //             this.countryEntityService.findByCodeWithRegions(req.country_code)
-    //             :
-    //             this.countryEntityService.findByNameWithRegions(req.country_name);
-
-    //     let db_country_ryi_promise: Promise<ICountryEntityWithRegions> = this.countryEntityService.findByWithRegions(
-    //         req.country_code, 
-    //         req.country_name, 
-    //         req.region_code);
-
-    //     let day_database = this.dayEntityService.find_by_date(req.year, req.month, req.day);
-
-    //     // will return day if database doesn't have that day for specified country and region.
-    //     // if cached year is found in either region or country, will return true in which found
-    //     // if no country was found, will return update observable promise, that must be awaited, together with day found.
-    //     // day must be cached, depending on whether or not day in the database was found.
-    //     // day found can be empty array
-    //     let day_response_try = this.configService.getConfig().then(
-    //         async cfg => {
-    //             // let hotload: boolean = (cfg.settings.hotload);
-    //             if (cfg.settings.hotload) {
-    //                 db_country_ryi_promise.then(db_country_ryi => {
-    //                     return this.tryLoadDay(req, db_country_ryi, true)
-    //                 })
-                    
-    //             } else {
-    //                 return null;
-    //             }
-    //         });
-
-        
-    //     let isYear: {
-    //         country_year_found: boolean;
-    //         region_year_found: boolean;
-    //         region_id: number;
-    //     } = undefined;
-
-    //     // check country and region to have year of days cached
-    //     if ((await db_country_promise) != undefined) {
-    //         this.tryThrowDatesLimits((await db_country_promise), req);
-
-    //         // country is found, country year is cached either for region or country
-    //         isYear = this.isYearOfDayCached(req, (await db_country_promise));
-    //         // save region_id
-            
-
-    //         if ((await day_database) != undefined) {
-                
-    //             // day found
-    //             if ((await day_database).absolute == true) {
-    //                 // this day was cached by every region and country, no need to check by none_in... array
-    //                 let res = this.whatDayStatus(
-    //                     (await day_database), 
-    //                     (await db_country_promise), 
-    //                     isYear.country_year_found, 
-    //                     isYear.region_year_found, 
-    //                     isYear.region_id, 
-    //                     false
-    //                 );
-
-    //                 if (res != undefined) {
-    //                     return res;
-    //                 } else return this.createResponse((await day_database), 'unknown');
-
-    //             } else {
-    //                 // day is not absolute
-
-    //                 let res = this.whatDayStatus(
-    //                     (await day_database), 
-    //                     (await db_country_promise), 
-    //                     isYear.country_year_found, 
-    //                     isYear.region_year_found, 
-    //                     isYear.region_id,
-    //                     true
-    //                 );
-
-    //                 if (res != undefined) {
-    //                     return res;
-    //                 }
-    //             }
-    //         }
-
-    //         // day not found, country found
-    //         if (isYear.country_year_found || isYear.region_year_found) {
-    //             return this.createResponse(req, 'unknown');
-    //         }
-
-    //         // day could have been found, but no country_id or region_id found --> update
-    //         // day could have been not found, country doesn't have cached days --> create
-            
-
-    //     }
-
-
-    //     let tryLoadDay = ((await day_response_try) != null) ? 
-    //         (await day_response_try) 
-    //         : (await this.tryLoadDay(req));
-
-    //     if (tryLoadDay.error != undefined) {
-    //         return this.throwErrorFromResponse(tryLoadDay)
-    //     }
-
-
-    //     // at this point day_obs must not be undefined 
-        
-    //     // previously noted that there might be a data race: 
-    //     // "(unless there's a data race and the day appeared after it was 
-    //     // not found by date)"
-        
-    //     // there're can be a data race, but different, 
-    //     // because days are updated first and then country is updated,
-    //     // in worst case scenario there will be no region or country year 
-    //     // found,
-    //     // but there will be day, which must have been returned already
-
-    //     // and even if there would be such scenario, there's no need 
-    //     // to return an error to user instead of viable response
-    //     // from third-party API
-        
-    //     // if (!tryLoadDay.country_year && !tryLoadDay.region_year) {
-
-    //     return ((tryLoadDay.day_obs) as Observable<IDay[]>).pipe(
-    //         tap((day: IDay[]) => {
-    //             day_database.then(day_database => {
-    //                 let response_day = (day.length == 0) ? null : day[0];
-
-
-
-
-
-    //                 if (tryLoadDay.countries_update_promise != undefined) {
-    //                     // changes in countries detected
-    //                     // new country was added and requires an update
-    //                     // new days might be linked to that country/region
-    //                     this.tryCreateOrUpdateDay_WhenCountriesDidChange(
-    //                         tryLoadDay.countries_update_promise,
-    //                         req,
-    //                         response_day,
-    //                         day_database
-    //                     );
-    //                 } else db_country_promise.then(async db_country => {
-    //                     if (day_database == undefined) {
-    //                         // db_country entity can be undefined, since no days and no countries were found.
-
-    //                         // if user would have provided with country_name, forced check would be applied
-    //                         // since country_name was provided, day was found without calling country list first.
-
-    //                         let rp_countries = undefined;
-    //                         if (db_country == undefined) {
-    //                             // create all countries and obtain country id and region id
-    //                             // create new day.
-
-    //                             rp_countries = await lastValueFrom(this.callendarService.getCountries());
-    //                             await this.cacherService.cacheAroundDays({
-    //                                 rp_countries,
-    //                                 "country_code": req.country_code,
-    //                                 "year": req.year,
-    //                                 "region_code": req.region_code,
-    //                                 "rp_days": [response_day]
-    //                             });
-    //                         } else {
-    //                             // save day under existing country
-    //                             await this.dayEntityService.createOneDayFromResponse(
-    //                                 response_day, 
-    //                                 req,
-    //                                 db_country.id,
-    //                                 isYear.region_id
-    //                             );
-    //                         }
-    //                     } else {
-                            
-    //                         // db_country entity must exist, because day was found using its id
-    //                         await this.dayEntityService.updateOneDayFromResponse(
-    //                             response_day, 
-    //                             (day_database),
-    //                             db_country,
-    //                             isYear.region_id
-    //                         );
-    //                     }
-    //                 });
-    //             });
-    //         }),
-    //         map(day => {
-    //             if (day.length == 0) {
-    //                 return this.createResponse(req, 'unknown');
-    //             } else {
-    //                 if (day[0].holidayType == 'public_holiday') {
-    //                     return this.createResponse(req, 'holiday');
-    //                 } else {
-    //                     return this.createResponse(req, 'workday');
-    //                 }
-    //             }
-    //         })
-    //     );
-    //         // return day;
-    //     // } else {
-    //     //     throw new HttpException(
-    //     //         {"code": 500, 
-    //     //         "message": 
-    //     //         "Day was not found, but it must be cached. Try again.", 
-    //     //         "error": "Internal Server Error"}, 
-    //     //         HttpStatus.INTERNAL_SERVER_ERROR);
-    //     // }
-    // }
 
     /**
      * Serves the day status
@@ -666,10 +379,10 @@ export class StatusOfDayResourceService {
      * 
      * If hotload is enabled, will send request to the third-party API to get the day from request
      * 
-     * Checks found country (or region) to have days cached for requested year + finds region_id
+     * Checks found country (or region) to have days saved for requested year + finds region_id
      * 
      * Based on the data in the database, either present day status in the response or 
-     * present the data from third-party API in last case, caching the day.
+     * present the data from third-party API in last case, saving the day.
      * 
      * If the country or region were not present, creates country/region first before assigning its ids to the day.
      * 
@@ -753,7 +466,6 @@ export class StatusOfDayResourceService {
                     !db_day.absolute
                 );
 
-                console.log(res);
                 if (res != undefined) {
                     return res;
                 } else if (db_day.absolute) {
@@ -787,67 +499,6 @@ export class StatusOfDayResourceService {
             return this.throwErrorFromResponse(tryLoadDay)
         }
 
-        
-
-        // // check country and region to have year of days cached
-        // if ((await db_country_promise) != undefined) {
-        //     this.tryThrowDatesLimits((await db_country_promise), req);
-
-        //     // country is found, country year is cached either for region or country
-        //     isYear = this.isYearOfDayCached(req, (await db_country_promise));
-        //     // save region_id
-            
-
-        //     if ((await db_days_promise) != undefined) {
-                
-        //         // day found
-        //         if ((await db_days_promise).absolute == true) {
-        //             // this day was cached by every region and country, no need to check by none_in... array
-        //             let res = this.whatDayStatus(
-        //                 (await db_days_promise), 
-        //                 (await db_country_promise), 
-        //                 isYear.country_year_found, 
-        //                 isYear.region_year_found, 
-        //                 isYear.region_id, 
-        //                 false
-        //             );
-
-        //             if (res != undefined) {
-        //                 return res;
-        //             } else return this.createResponse((await db_days_promise), 'unknown');
-
-        //         } else {
-        //             // day is not absolute
-
-        //             let res = this.whatDayStatus(
-        //                 (await db_days_promise), 
-        //                 (await db_country_promise), 
-        //                 isYear.country_year_found, 
-        //                 isYear.region_year_found, 
-        //                 isYear.region_id,
-        //                 true
-        //             );
-
-        //             if (res != undefined) {
-        //                 return res;
-        //             }
-        //         }
-        //     }
-
-        //     // day not found, country found
-        //     if (isYear.country_year_found == true || isYear.region_year_found == true) {
-        //         return this.createResponse(req, 'unknown');
-        //     }
-
-            
-            
-
-        // }
-
-
-        
-
-
         // at this point day_obs must not be undefined 
         
         // previously noted that there might be a data race: 
@@ -864,14 +515,11 @@ export class StatusOfDayResourceService {
         // to return an error to user instead of viable response
         // from third-party API
         
-        // if (!tryLoadDay.country_year && !tryLoadDay.region_year) {
 
         return ((tryLoadDay.days_obs) as Observable<IDay[]>).pipe(
             tap(async (days: IDay[]) => {
 
-                /**
-                 * Day obtained from response
-                 */
+                /**Day obtained from response*/
                 let rp_day = (days.length == 0) ?
                     null
                 :   days[0];
@@ -942,58 +590,6 @@ export class StatusOfDayResourceService {
                     }
                     
                 }
-
-                    // if (tryLoadDay.countries_update_promise != undefined) {
-                    //     // changes in countries detected
-                    //     // new country was added and requires an update
-                    //     // new days might be linked to that country/region
-                    //     this.tryCreateOrUpdateDay_WhenCountriesDidChange(
-                    //         tryLoadDay.countries_update_promise,
-                    //         req,
-                    //         response_day,
-                    //         day_database
-                    //     );
-                    // } else db_country_promise.then(async db_country => {
-                    //     if (day_database == undefined) {
-                    //         // db_country entity can be undefined, since no days and no countries were found.
-
-                    //         // if user would have provided with country_name, forced check would be applied
-                    //         // since country_name was provided, day was found without calling country list first.
-
-                    //         let rp_countries = undefined;
-                    //         if (db_country == undefined) {
-                    //             // create all countries and obtain country id and region id
-                    //             // create new day.
-
-                    //             rp_countries = await lastValueFrom(this.callendarService.getCountries());
-                    //             await this.cacherService.cacheAroundDays({
-                    //                 rp_countries,
-                    //                 "country_code": req.country_code,
-                    //                 "year": req.year,
-                    //                 "region_code": req.region_code,
-                    //                 "rp_days": [response_day]
-                    //             });
-                    //         } else {
-                    //             // save day under existing country
-                    //             await this.dayEntityService.createOneDayFromResponse(
-                    //                 response_day, 
-                    //                 req,
-                    //                 db_country.id,
-                    //                 isYear.region_id
-                    //             );
-                    //         }
-                    //     } else {
-                            
-                            
-                    //         await this.dayEntityService.updateOneDayFromResponse(
-                    //             response_day, 
-                    //             (day_database),
-                    //             db_country,
-                    //             isYear.region_id
-                    //         );
-                    //     }
-                    // });
-                // });
             }),
             map(day => {
                 if (day.length == 0) {
@@ -1007,435 +603,5 @@ export class StatusOfDayResourceService {
                 }
             })
         );
-            // return day;
-        // } else {
-        //     throw new HttpException(
-        //         {"code": 500, 
-        //         "message": 
-        //         "Day was not found, but it must be cached. Try again.", 
-        //         "error": "Internal Server Error"}, 
-        //         HttpStatus.INTERNAL_SERVER_ERROR);
-        // }
     }
-
-    // /**
-    //  * Try to update countries and save new days
-    //  * 
-    //  * Run if changes in countries are detected.
-    //  * 
-    //  * new country was added and requires an update
-    //  * 
-    //  * new days might be linked to that country/region
-    //  * @param countries_update_promise 
-    //  * @param req 
-    //  * @param response_day 
-    //  * @param day_database 
-    //  */
-    // tryCreateOrUpdateDay_WhenCountriesDidChange(
-    //     countries_update_promise: Promise<void> | Promise<{
-    //         savedCountries: Country[];
-    //         savedRegions: Region[];
-    //     }>, 
-    //     req: StatusDtoRequest, 
-    //     response_day: IDay, 
-    //     day_database?: Day | undefined) {
-
-    //     countries_update_promise.then(res => {
-    //         try {
-    //             this.cacheDayForJustCreatedCountry(res, req, response_day, (day_database)).finally();
-                
-
-
-    //         } catch {
-    //             // day might be created for new region/county
-    //             this.cacheDayForQuestionableCountry(req, response_day, (day_database)).finally();
-    //         }
-    //     });
-    // }
-
-
-    // /**
-    //  * Updates or creates the day in the database
-    //  * 
-    //  * Saving day with new country/region ids, that was just saved.
-    //  * 
-    //  * @param res 
-    //  * @param req 
-    //  * @param day_response 
-    //  * @param day_database 
-    //  * @throw HttpException
-    //  */
-    // async cacheDayForJustCreatedCountry(res: any, req: StatusDtoRequest, day_response: IDay, day_database: Day | undefined) {
-    //     let newSavedCountries: Country[] = res.savedCountries;
-
-    //     let obtainedCountry: Country = undefined;
-    //     let region_id: number = undefined;
-    //     for (let i=0; i<newSavedCountries.length; i++) {
-    //         if (req.country_code != undefined) {
-    //             if (newSavedCountries[i].code == req.country_code) {
-    //                 // need to get whole regions array. return from creation doesn't provide it
-    //                 obtainedCountry = await this.countryEntityService.findByIdWithRegions(newSavedCountries[i].id);
-    //             }
-    //         } else if (req.country_name != undefined) {
-    //             if (newSavedCountries[i].full_name == req.country_name) {
-    //                 // need to get whole regions array. return from creation doesn't provide it
-    //                 obtainedCountry = await this.countryEntityService.findByIdWithRegions(newSavedCountries[i].id);
-    //             }
-    //         }
-    //     }
-    //     if (req.region_code != undefined) {
-    //         let lower_region_code = req.region_code.toLowerCase();
-    //         for (let i=0; i<obtainedCountry.regions.length; i++) {
-    //             if (obtainedCountry.regions[i].code == lower_region_code) {
-    //                 region_id = obtainedCountry.regions[i].id;
-    //                 break;
-    //             }
-    //         }
-    //     }
-
-    //     if (obtainedCountry != undefined) {
-    //         if (req.region_code != undefined){
-    //             if (region_id == undefined) {
-    //                 // error
-    //                 throw new HttpException(
-    //                     {"code": 500, 
-    //                     "message": 
-    //                     "Requested region_id wasn't found cached, but day for this region was found from API response", 
-    //                     "error": "Internal Server Error"}, 
-    //                     HttpStatus.INTERNAL_SERVER_ERROR);
-    //             }
-    //         }
-    //         if (day_database != undefined) {
-    //             await this.dayEntityService.updateOneDayFromResponse(
-    //                 day_response,
-    //                 day_database,
-    //                 obtainedCountry,
-    //                 region_id
-    //             );
-    //         } else await this.dayEntityService.createOneDayFromResponse(
-    //             day_response,
-    //             req,
-    //             obtainedCountry.id,
-    //             region_id
-    //         );
-            
-    //     } else {
-    //         throw new HttpException(
-    //             {"code": 500, 
-    //             "message": 
-    //             "Requested country wasn't found cached, but day for this country was found from API response", 
-    //             "error": "Internal Server Error"}, 
-    //             HttpStatus.INTERNAL_SERVER_ERROR);
-    //     }
-    // }
-
-    // /**
-    //  * Creates or updates a new day in the database
-    //  * 
-    //  * Here know for sure that country lists are updated,
-    //  * however new country/region might not have been requested and
-    //  * as a consequence has nothing to do with the day of question.
-    //  * 
-    //  * In any way try to find country by code or name provided in the request
-    //  * from the database
-    //  * 
-    //  * @param req 
-    //  * @param day_response 
-    //  * @param day_database 
-    //  * @throw HttpException
-    //  */
-    // async cacheDayForQuestionableCountry(req: StatusDtoRequest, day_response: IDay, day_database: Day) {
-
-    //     let new_country: Country = (req.country_code != undefined) ?
-    //         await this.countryEntityService.findByCodeWithRegions(req.country_code)
-    //         : await this.countryEntityService.findByNameWithRegions(req.country_name)
-        
-    //     let region_id: number = undefined;
-    //     if (req.region_code != undefined) {
-    //         if (new_country != undefined) {
-    //             if (new_country.regions.length == 0) {
-    //                 // error
-    //                 throw new HttpException(
-    //                     {"code": 500, 
-    //                     "message": 
-    //                     "Requested country doesn't have regions, but day for one of the regions was found from API response", 
-    //                     "error": "Internal Server Error"}, 
-    //                     HttpStatus.INTERNAL_SERVER_ERROR);
-    //             } else {
-    //                 for (let i=0; i<new_country.regions.length; i++) {
-    //                     if (new_country.regions[i].code == req.region_code) {
-    //                         region_id = new_country.regions[i].id;
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-    //         } else {
-    //             // error
-    //             throw new HttpException(
-    //                 {"code": 500, 
-    //                 "message": 
-    //                 "Requested country wasn't found cached, but day for this country was found from API response", 
-    //                 "error": "Internal Server Error"}, 
-    //                 HttpStatus.INTERNAL_SERVER_ERROR);
-    //         }
-    //     }
-
-    //     if (day_database != undefined) {
-    //         await this.dayEntityService.updateOneDayFromResponse(
-    //             day_response, 
-    //             day_database, 
-    //             new_country, 
-    //             region_id
-    //         );
-    //     } else await this.dayEntityService.createOneDayFromResponse(
-    //         day_response,
-    //         req,
-    //         new_country.id,
-    //         region_id
-    //     );
-        
-    // }
-
-    // /**
-    //  * Tries to load day data from the third-party API
-    //  * 
-    //  * However if the request only has country name, it will try to check given country found 
-    //  * from the database to have requested year days cached. It will not make a request 
-    //  * to the third-party API, if year is found to be cached.
-    //  * 
-    //  * If the country was not found in the database, it will create a promise, that
-    //  * will need to be awaited in order to update the database.
-    //  * 
-    //  * @param req 
-    //  * @param db_country 
-    //  * @param hotload identifies if was launched by hotload (might be used by logging)
-    //  * @returns 
-    //  */
-    // async tryLoadDay(req: StatusDtoRequest, db_country?: Country, hotload?: boolean) {
-    //     let date = 
-    //         ((req.day > 9) ? 
-    //             req.day
-    //             : ("0"+req.day)) 
-    //         + "-" + 
-    //         ((req.month > 9) ?
-    //             req.month
-    //             : ("0"+req.month))
-    //         + "-" + 
-    //         req.year;
-
-    //     let countries_update_promise: Promise<{
-    //         savedCountries: Country[];
-    //         savedRegions: Region[];
-    //     }> | Promise<void> = undefined;
-
-    //     let country_code: string = undefined;
-
-    //     let country_year_found = false;
-    //     let region_year_found = false;
-
-    //     let day_obs: Observable<IDay[]> = undefined;
-    //     let e: IStatusOfDayRequestError = new Object();
-
-    //     let country_name_not_found_case: {
-    //         country_code: string;
-    //         countries_update_promise: Promise<{
-    //             savedCountries: Country[];
-    //             savedRegions: Region[];
-    //         }> | Promise<void>
-    //     } = undefined;
-
-
-    //     if (req.country_code == undefined) {
-    //         // will require to pull data from the database to know country code
-    //         if (db_country != undefined) {
-    //             this.tryThrowDatesLimits(db_country, req);
-    //             // get the country code
-    //             country_code = db_country.code;
-
-    //             let res = this.isYearOfDayCached(req, db_country);
-    //             country_year_found = res.country_year_found;
-    //             region_year_found = res.region_year_found;
-
-    //         } else {
-    //             // country not found
-    //             country_name_not_found_case = await this.tryCountryCodeFromApi(req.country_name);
-    //         }
-    //     } else {
-    //         country_code = req.country_code;
-    //     }
-        
-    //     if (req.country_code == undefined && country_code == undefined) {
-    //         // no country with specified name was found, therefore no day return
-    //         // this case will return value country_code as undefined
-
-    //         // in this case must first ensure that there're no countries with that name in t-p API
-    //         // if no countries found with such name return an error
-
-    //         // in the other case return promise to create countries,
-    //         // under which the day was found.
-
-    //         if (country_name_not_found_case.country_code != undefined) {
-    //             country_code = country_name_not_found_case.country_code;
-    //         } else {
-    //             e.country_name = es.addError(e.country_name, "not found");
-    //         }
-
-    //     }
-
-    //     if (country_year_found == false && region_year_found == false) {
-    //         // days are not cached for year requested - try days from t-p API
-    //         try {
-    //             day_obs = this.callendarService.getDay(date, country_code, req.region_code);
-    //         } catch (e) {
-    //             return {
-    //                 // identifies if method was called from hotload
-    //                 "hotload": (hotload == undefined)? 
-    //                 false 
-    //                 : (hotload == true) ? 
-    //                     true 
-    //                     : false,
-    //                 // contains error if country wasn't found by name
-    //                 "error": e.response.error,
-    //                 // if country_code provided from request returns country_code requested
-    //                 // if country_code wasn't provided may have country_code from found country by country_name
-    //                 "country_code": (country_name_not_found_case == undefined) ? 
-    //                     country_code 
-    //                     : country_name_not_found_case.country_code,
-    //                 // identifies if days are cached under requested country year
-    //                 "country_year": country_year_found,
-    //                 // identifies if days are cached under requested region year
-    //                 "region_year": region_year_found,
-    //                 // promise to either create or update countries/regions found. provide some output
-    //                 "countries_update_promise": (country_name_not_found_case == undefined) ? 
-    //                     countries_update_promise 
-    //                     : country_name_not_found_case.countries_update_promise,
-    //                 // day found from api
-    //                 "day_obs": undefined
-    //             }
-    //         }
-                
-    //     }
-    
-
-    //     return {
-    //         // identifies if method was called from hotload
-    //         "hotload": (hotload == undefined)? 
-    //             false 
-    //             : (hotload == true) ? 
-    //                 true 
-    //                 : false,
-    //         // contains error if country wasn't found by name
-    //         "error": (Object.entries(e).length === 0)? 
-    //             undefined 
-    //             : e,
-    //         // if country_code provided from request returns country_code requested
-    //         // if country_code wasn't provided may have country_code from found country by country_name
-    //         "country_code": (country_name_not_found_case == undefined) ? 
-    //             country_code 
-    //             : country_name_not_found_case.country_code,
-    //         // identifies if days are cached under requested country year
-    //         "country_year": country_year_found,
-    //         // identifies if days are cached under requested region year
-    //         "region_year": region_year_found,
-    //         // promise to either create or update countries/regions found. provide some output
-    //         "countries_update_promise": (country_name_not_found_case == undefined) ? 
-    //             countries_update_promise 
-    //             : country_name_not_found_case.countries_update_promise,
-    //         // day found from api
-    //         "day_obs": day_obs
-    //     }
-    // }
-
-    // /**
-    //  * Checks if found country (or its requested region) from the database has full year of days saved
-    //  * 
-    //  * Finds region_id if region code was provided in the request
-    //  * 
-    //  * @param req 
-    //  * @param db_country 
-    //  * @returns 
-    //  */
-    // isYearOfDayCached(req: StatusDtoRequest, db_country: Country) {
-        
-    //     let res = {
-    //         "country_year_found": false,
-    //         "region_year_found": false,
-    //         "region_id": undefined
-    //     };
-
-    //     // next identify if day of requested year was saved, when full year list was requested.
-    //     if (this.ls.doesListContainValue(db_country.years, req.year)) {
-    //         res.country_year_found = true;
-    //     }
-
-    //     if (req.region_code != undefined) {
-    //         if (db_country.regions != null) {
-    //             if (db_country.regions.length != 0) {
-    //                 for (let i=0; i< db_country.regions.length; i++) {
-    //                     if (db_country.regions[i].code == req.region_code) {
-    //                         res.region_id = db_country.regions[i].id;
-
-    //                         if (this.ls.doesListContainValue(db_country.regions[i].years, req.year)) {
-    //                             res.region_year_found = true;
-    //                         }
-    //                         return res;
-    //                     }
-    //                 }
-    //             }
-    //         }
-            
-    //     }
-    //     return res;
-    // }
-
-    // /**
-    //  * Tries to find country code from third-party API by the country name
-    //  * 
-    //  * Creates save promise of all countries if no countries exist in the database
-    //  * Create promise to update countries with new country/ies
-    //  * 
-    //  * @param req 
-    //  * @returns has to await on countries_update_promise if such exists, ignore if country_code undefined
-    //  */
-    // async tryCountryCodeFromApi(country_name: string) {
-    //     // get all countries from database
-    //     let countries_database_promise = this.countryEntityService.findAll();
-    //     // get all countries from response
-    //     let countries_response = await lastValueFrom(this.callendarService.getCountries());
-
-    //     let countries_update_promise: Promise<{
-    //         savedCountries: Country[];
-    //         savedRegions: Region[];
-    //     }> | Promise<void> = undefined;
-
-    //     let country_code: string = undefined;
-
-    //     let lower_country_name = country_name.toLowerCase();
-
-    //     let countries_database = await countries_database_promise;
-    //     countries_database_promise = null;
-
-    //     for (let i = 0; i < countries_response.length; i++) {
-
-    //         if (countries_response[i].fullName.toLowerCase() == lower_country_name) {
-    //             country_code = countries_response[i].countryCode;
-    //             // here we know for sure, that countries in the database needs to be updated.
-    //             if (countries_database.length == 0) {
-    //                 countries_update_promise = this.countryEntityService
-    //                     .saveAllNew(
-    //                         countries_response
-    //                     );
-    //                 break;
-    //             } else {
-    //                 countries_update_promise = this.countryEntityService
-    //                     .tryUpdateFromAPI(
-    //                         countries_database,
-    //                         countries_response
-    //                     );
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //     return {country_code, countries_update_promise}
-    // }
 }

@@ -2,7 +2,7 @@ import { Controller,Get, Query } from "@nestjs/common";
 import { HolidaysDtoRequest } from "./holidays.dto";
 import { HolidaysResourceService } from "./holidays.service";
 
-import { ApiOperation, ApiTags, ApiResponse, ApiBadRequestResponse, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery } from "@nestjs/swagger";
+import { ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 
 
 @Controller('holidays')

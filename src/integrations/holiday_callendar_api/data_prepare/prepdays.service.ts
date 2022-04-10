@@ -7,7 +7,6 @@ import { IDay } from "../callendar.interface";
 import { ITryLoadDays, ITryLoadDaysError, ITryLoadDaysReturning, ITryLoadHolidayDaysReturning } from "./prepdays.interface";
 import { ErrorService as es } from "src/errors/adderror.service";
 import { DateLimitsThrowingService } from "src/utilities/throwers/date_limits/date_limits.service";
-import { ListingService } from "src/utilities/listing.service";
 import { CountryEntityService } from "src/models/country/country.service";
 import { CallendarService } from "../callendar.service";
 import { DayEntityService } from "src/models/day/day.service";
@@ -18,7 +17,6 @@ export class CallendarPrepareService {
     constructor(
         private readonly configService: ConfigService,
         private readonly dateLimitsThrowService: DateLimitsThrowingService,
-        private readonly ls: ListingService,
         private readonly countryEntityService: CountryEntityService,
         private readonly callendarService: CallendarService,
         private readonly dayEntityService: DayEntityService
@@ -466,15 +464,23 @@ export class CallendarPrepareService {
         }
 
         // check country years
-        if (this.ls.doesListContainValue(country_years, year)) {
-            res.country_year_found = true;
-            return res;
+        
+        if (country_years != null)
+        for (let i=0; country_years.length; i++) {
+            if (country_years[i] == year) {
+                res.country_year_found = true;
+                return res;
+            }
         }
+        
 
         // check region years
-        if (this.ls.doesListContainValue(region_years, year)) {
-            res.region_year_found = true;
-            return res;
+        if (region_years != null)
+        for (let i=0; region_years.length; i++) {
+            if (region_years[i] == year) {
+                res.region_year_found = true;
+                return res;
+            }
         }
         
         // nothing found
