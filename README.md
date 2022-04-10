@@ -21,15 +21,15 @@ Main scope was to create a small application, that would be error-prone, configu
 
 ## Endpoints
 
-The application currently serves 3 endpoints which return JSON as a response.
+The application serves 4 endpoints which return JSON as a response.
 
 | **Endpoint**            | **Description**                                                                                                                                                                                                                                                                                                              | **Query Params** |
 |-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
-| <code>/countries</code> | Returns list of countries and their regions available. <br> Saves new, updates different (date limits or extra working days appearing). <br> Has setting to check country list after request to check for changes.                                                                                                           | No               |
-| <code>/holidays</code>  | Returns list of months with holiday days. <br> Saves new, updates existing, registers that all days are saved. <br> Has setting to hotload data from third-party API before making request to the database.                                                                                                                  | Yes              |
+| <code>/countries</code> | Returns list of countries and their regions available. <br> Saves new, updates if data different different. <br> Has setting to check country list after request to check for changes.                                                                                                                                       | No               |
+| <code>/holidays</code>  | Returns list of months with holiday days. <br> Saves new, updates existing, registers that all days are saved for requested year. <br> Has setting to hotload data from third-party API before making request to the database.                                                                                               | Yes              |
 | <code>/status</code>    | Returns day status (*holiday*, *workday*, *freeday*) <br> Saves new, updates existing, registers if all days are saved for one country (or region). <br> Can register that day was checked by all countries (and their regions) <br> Has setting to hotload data from third-party API before making request to the database. | Yes              |
-| <code>/api</code>       | API documentation generated with Swagger on the endpoints above.                                                                                                                                                                                                                                                              |                  |
-
+| <code>/freedays</code>  | Returns max number of freedays in a year <br> Saves new, updates existing, registers that all days are saved for requested year. <br> Has setting to hotload data from third-party API before making request to the database.                                                                                                | Yes              |
+| <code>/api</code>       | API documentation generated with Swagger on the endpoints above                                                                                                                                                                                                                                                              |                  |
 ## Installation
 
 ```bash
@@ -57,7 +57,7 @@ To enable <code>/countries</code> additional country check after response change
 
 To enable hotload set <code>hotload</code> to <code>true</code>.
 
----
+
 
 <!-- ## Tests
 
@@ -75,3 +75,7 @@ $ npm run test:cov
 ```
 
 --- -->
+
+## Author
+
+[nonamekk](https://github.com/nonamekk)

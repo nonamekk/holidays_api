@@ -84,16 +84,16 @@ export class CallendarService {
 
   /**
    * Get day info on a day for desired country (and its region) and date
-   * @param date 
+   * @param from_date 
    * @param country_code 
    * @param region_code 
    * @returns array with day if it is holiday or workday (empty array otherwise)
    * @throws prepared HttpException with BAD_REQUEST if there's an error from API
    */
-  getDay (date: string, country_code: string, region_code?: string): Observable<IDay[]> {
+  getDay (from_date: string, country_code: string, region_code?: string, to_date?: string): Observable<IDay[]> {
     let req: string = (!region_code) ?
-        `https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange&fromDate=${date}&toDate=${date}&country=${country_code}`
-    : `https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange&fromDate=${date}&toDate=${date}&country=${country_code}&region=${region_code}`;
+        `https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange&fromDate=${from_date}&toDate=${(to_date == undefined)?from_date:to_date}&country=${country_code}`
+    : `https://kayaposoft.com/enrico/json/v2.0/?action=getHolidaysForDateRange&fromDate=${from_date}&toDate=${(to_date == undefined)?from_date:to_date}&country=${country_code}&region=${region_code}`;
 
 
     return this.httpService

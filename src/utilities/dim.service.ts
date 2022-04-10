@@ -27,7 +27,7 @@ export class DaysInMonthsService {
      * 
      * January is 0, December is 11
      * @param year 
-     * @returns 
+     * @returns days in months (dim)
      */
     getDaysAmmountsForYear(year: number) {
         if (this.dayEntityService.daysInYear(year) == 365) {

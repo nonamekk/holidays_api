@@ -63,7 +63,7 @@ export class StatusOfDayResourceController {
     })
     @ApiQuery({
         name: "region_code",
-        description: "Region code (2 letters), case insensitive",
+        description: "Region code (2-3 letters), case insensitive",
         example: "be",
         required: false,
     })
