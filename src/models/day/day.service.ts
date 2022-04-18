@@ -5,11 +5,11 @@ import { Region } from '../region/region.entity';
 import { Day } from './day.entity';
 import { IDayEntity } from './day.interface';
 import { IDay } from '../../integrations/holiday_callendar_api/callendar.interface';
-import { DescriptorService } from 'src/utilities/descriptor.service';
 import { IDayStatusDate } from 'src/resources/status/status.interface';
 import { CountryEntityService } from '../country/country.service';
 import { RegionEntityService } from '../region/region.service';
 import { WeekDay } from './day.type';
+import { MonthDaysArrayService } from 'src/utilities/month_days_array/mda.service';
 
 
 @Injectable()
@@ -17,9 +17,9 @@ export class DayEntityService {
   constructor(
     @Inject('DAY_REPOSITORY')
     private dayRepository: Repository<Day>,
-    private readonly cachedD: DescriptorService,
     private readonly countryEntityService: CountryEntityService,
     private readonly regionEntityService: RegionEntityService,
+    private readonly mda: MonthDaysArrayService,
   ) {}
 
 
@@ -33,8 +33,8 @@ export class DayEntityService {
    */
   async prepareHolidaysFromDatabaseToResponse(days: Day[], country_id: number, region_id?: number) {
     // use cached object
-    return this.cachedD.getMonthsObjectArray().then(
-      mo => {
+    return this.mda.obtainMonthDaysArray().then(
+      mda => {
         for (let i=0; i<days.length; i++) {
           let day_is_found = false;
           if (days[i].holiday_in_countries_ids != null) {
@@ -43,7 +43,7 @@ export class DayEntityService {
 
                 let dow = new Date(days[i].year, days[i].month-1, days[i].day).getDay() + 1;
                 
-                mo[(days[i].month-1)].days.push({
+                mda[(days[i].month-1)].days.push({
                   "year": days[i].year,
                   "month": days[i].month,
                   "day": days[i].day,
@@ -61,7 +61,7 @@ export class DayEntityService {
   
                   let dow = new Date(days[i].year, days[i].month-1, days[i].day).getDay() + 1;
 
-                  mo[(days[i].month-1)].days.push({
+                  mda[(days[i].month-1)].days.push({
                     "year": days[i].year,
                     "month": days[i].month,
                     "day": days[i].day,
@@ -76,10 +76,10 @@ export class DayEntityService {
           }
         }
          // finally sort days in each month.
-         for (let i = 0; i< mo.length; i++) {
-          mo[i].days.sort((a,b) => {return (+a.day) - (+b.day)});
+         for (let i = 0; i< mda.length; i++) {
+          mda[i].days.sort((a,b) => {return (+a.day) - (+b.day)});
         }
-        return mo;
+        return mda;
        
       }
     )
@@ -92,13 +92,13 @@ export class DayEntityService {
    */
   async prepareHolidaysFromCallendarToResponse(days: IDay[]) {
     // use cached object
-    return this.cachedD.getMonthsObjectArray().then(
-      mo => {
-        for (let i=0; i<mo.length; i++) {
+    return this.mda.obtainMonthDaysArray().then(
+      mda => {
+        for (let i=0; i<mda.length; i++) {
           let days_to_skip = [];
           for (let j=0; j<days.length; j++) {
             let month = days[j].date.month-1
-            if (month == mo[i].id) {
+            if (month == i) {
               // if (days[j].holidayType) // no need to check because response returns only holidays
               let skip = false;
               for (let p=0; p<days_to_skip.length; p++) {
@@ -108,7 +108,7 @@ export class DayEntityService {
                 }
               }
               if (!skip) {
-                mo[i].days.push({
+                mda[i].days.push({
                   "year": days[j].date.year,
                   "month": days[j].date.month,
                   "day": days[j].date.day,
@@ -121,7 +121,7 @@ export class DayEntityService {
             }
           }
         }
-        return mo;
+        return mda;
       }
     )
   }

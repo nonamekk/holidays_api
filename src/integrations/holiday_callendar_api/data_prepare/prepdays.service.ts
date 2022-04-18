@@ -10,7 +10,7 @@ import { DateLimitsThrowingService } from "src/utilities/throwers/date_limits/da
 import { CountryEntityService } from "src/models/country/country.service";
 import { CallendarService } from "../callendar.service";
 import { DayEntityService } from "src/models/day/day.service";
-import { IMonthsObject } from "src/utilities/descriptor.interface";
+import { MonthDays } from "src/utilities/month_days_array/mda.type";
 
 @Injectable()
 export class CallendarPrepareService {
@@ -73,7 +73,7 @@ export class CallendarPrepareService {
          */
         let prep_obs: Observable<Promise<{
             containing_days: boolean;
-            result: IMonthsObject[];
+            result: MonthDays[];
             days: IDay[];
         }>> = undefined;
 

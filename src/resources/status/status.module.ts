@@ -4,7 +4,7 @@ import { CallendarModule } from 'src/integrations/holiday_callendar_api/callenda
 import { CountryEntityModule } from 'src/models/country/country.module';
 import { RegionEntityModule } from 'src/models/region/region.module';
 import { DayEntityModule } from 'src/models/day/day.module';
-import { DescriptorModule } from 'src/utilities/descriptor.module';
+import { MonthDaysArrayModule } from 'src/utilities//month_days_array/mda.module';
 import { CacherModule } from 'src/cacher/casher.module';
 import { StatusOfDayResourceController } from './status.controller';
 import { StatusOfDayResourceService } from './status.service';
@@ -13,7 +13,7 @@ import { CallendarPrepareModule } from 'src/integrations/holiday_callendar_api/d
 import { DateLimitsThrowingModule } from 'src/utilities/throwers/date_limits/date_limits.module';
 
 @Module({
-  imports: [CallendarModule, CountryEntityModule, DayEntityModule, DescriptorModule, 
+  imports: [CallendarModule, CountryEntityModule, DayEntityModule, MonthDaysArrayModule, 
     CacherModule, RegionEntityModule, DaysInMonthsModule,
     CallendarPrepareModule, DateLimitsThrowingModule],
   controllers: [StatusOfDayResourceController],
