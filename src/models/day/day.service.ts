@@ -9,7 +9,7 @@ import { IDayStatusDate } from 'src/resources/status/status.interface';
 import { CountryEntityService } from '../country/country.service';
 import { RegionEntityService } from '../region/region.service';
 import { WeekDay } from './day.type';
-import { MonthDaysArrayService } from 'src/utilities/month_days_array/mda.service';
+import { MonthDaysArrayService } from '../../utilities/month_days_array/mda.service';
 
 
 @Injectable()
@@ -19,7 +19,7 @@ export class DayEntityService {
     private dayRepository: Repository<Day>,
     private readonly countryEntityService: CountryEntityService,
     private readonly regionEntityService: RegionEntityService,
-    private readonly mda: MonthDaysArrayService,
+    private readonly monthDaysArrayService: MonthDaysArrayService
   ) {}
 
 
@@ -30,11 +30,14 @@ export class DayEntityService {
    * @param country_id 
    * @param region_id 
    * @returns Prepared months object list (12 months with none or some days as IDate)
+   * @todo rename docs to mda from months object list
    */
   async prepareHolidaysFromDatabaseToResponse(days: Day[], country_id: number, region_id?: number) {
     // use cached object
-    return this.mda.obtainMonthDaysArray().then(
-      mda => {
+    // return this.mda.obtainMonthDaysArray().then(
+    //   this.mda.mda => {
+        // console.log(mda);
+        let mda = this.monthDaysArrayService.getMonthDaysArray();
         for (let i=0; i<days.length; i++) {
           let day_is_found = false;
           if (days[i].holiday_in_countries_ids != null) {
@@ -81,8 +84,8 @@ export class DayEntityService {
         }
         return mda;
        
-      }
-    )
+      // }
+    // )
   }
 
   /**
@@ -92,8 +95,9 @@ export class DayEntityService {
    */
   async prepareHolidaysFromCallendarToResponse(days: IDay[]) {
     // use cached object
-    return this.mda.obtainMonthDaysArray().then(
-      mda => {
+    // return this.mda.obtainMonthDaysArray().then(
+      // mda => {
+      let mda = this.monthDaysArrayService.getMonthDaysArray();
         for (let i=0; i<mda.length; i++) {
           let days_to_skip = [];
           for (let j=0; j<days.length; j++) {
@@ -122,8 +126,8 @@ export class DayEntityService {
           }
         }
         return mda;
-      }
-    )
+      // }
+    // )
   }
 
 
