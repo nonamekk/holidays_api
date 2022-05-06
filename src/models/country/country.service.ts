@@ -4,13 +4,15 @@ import { Country } from './country.entity';
 import { ICountry } from '../../integrations/holiday_callendar_api/callendar.interface';
 import { ICountryEntity, ICountryEntityWithRegions } from './country.interface'
 import { RegionEntityService } from '../region/region.service';
+import { ListingService } from 'src/utilities/listing.service';
 
 @Injectable()
 export class CountryEntityService {
   constructor(
     @Inject('COUNTRY_REPOSITORY')
     private countryRepository: Repository<Country>,
-    private readonly regionEntityService: RegionEntityService
+    private readonly regionEntityService: RegionEntityService,
+    private readonly ls: ListingService
 
   ) {}
 
@@ -195,8 +197,7 @@ export class CountryEntityService {
 
 
     // country.regions = regions;
-    country.workdays = this.check_workday(input.holidayTypes);
-
+    country.workdays = this.ls.doesListContainValue(input.holidayTypes, 'extra_working_day');
     return this.countryRepository.create(country);
   }
 
@@ -358,26 +359,20 @@ export class CountryEntityService {
           if (db_countries[j].code == response_countries[i].countryCode) {
               country_found = true;
 
-              let workdays = false;
-              for (let k=0; k < response_countries[i].holidayTypes.length; k++) {
-                  if (response_countries[i].holidayTypes[k] == 'extra_working_day') {
-                      workdays = true;
-                      break;
-                  }
-              }
+              let workdays = this.ls.doesListContainValue(response_countries[i].holidayTypes, 'extra_working_day');
 
               // Add new regions
               // regions that are in the database, but not in the response from the API are kept
               let newRegions = [];
               for (let k=0; k<response_countries[i].regions.length; k++) {
                   // if region is not found it is send to create
-                  let regionNotFound = true;
-                  for (let p=0; p<response_countries[i].regions.length; p++) {
-                      if (response_countries[i].regions[p] == db_countries[j].regions[k].code) {
-                          regionNotFound = false;
-                      }
-                  }
-                  if (regionNotFound) {
+                  
+                  let region_code_found = this.ls.doesListContainValue(
+                    response_countries[i].regions, 
+                    db_countries[j].regions[k].code
+                  );
+                  
+                  if (!region_code_found) {
                       newRegions.push(
                         this.regionEntityService.create(
                           response_countries[i].regions[k], 
@@ -438,19 +433,5 @@ export class CountryEntityService {
     }
   }
 
-  /**
-   * Do holiday_types contain 'extra working day'?
-   * @param holiday_types 
-   * @returns answer
-   */
-  private check_workday(holiday_types: string[]) {
-    let types_length = holiday_types.length;
-    let workdays = false;
-    for (let i=0; i < types_length; i++) {
-      if (holiday_types[i] == 'extra_working_day') {
-        workdays = true
-      }
-    }
-    return workdays;
-  }
+
 }

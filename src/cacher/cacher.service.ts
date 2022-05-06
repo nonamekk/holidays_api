@@ -9,6 +9,7 @@ import { Day } from "src/models/day/day.entity";
 import { DayEntityService } from "src/models/day/day.service";
 import { Region } from "src/models/region/region.entity";
 import { RegionEntityService } from "src/models/region/region.service";
+import { ListingService } from "src/utilities/listing.service";
 import { ICacheAroundDays } from "./cacher.interface";
 
 
@@ -19,6 +20,7 @@ export class CacherService {
         private readonly callendarService: CallendarService,
         private readonly dayEntityService: DayEntityService,
         private readonly regionEntityService: RegionEntityService,
+        private readonly ls: ListingService
     ) {}
 
      /**
@@ -133,23 +135,8 @@ export class CacherService {
         if (input.db_country_ryi != undefined) {
             // at this point country_with_regions cannot be undefined
             // check if country or region has year
-            let country_has_year = false;
-            if (input.db_country_ryi.country_years != null)
-            for (let i=0; i<input.db_country_ryi.country_years.length; i++) {
-                if (input.db_country_ryi.country_years[i] == input.year) {
-                    country_has_year = true;
-                }
-            }
-            
-
-            let region_has_year = false;
-            if (input.db_country_ryi.region_years != null)
-            for (let i=0; i<input.db_country_ryi.region_years.length; i++) {
-                if (input.db_country_ryi.region_years[i] == input.year) {
-                    region_has_year = true;
-                }
-            }
-            
+            let country_has_year = this.ls.doesListContainValue(input.db_country_ryi.country_years, input.year) 
+            let region_has_year = this.ls.doesListContainValue(input.db_country_ryi.region_years, input.year);
 
             if (country_has_year == false && region_has_year == false) {
 
@@ -343,15 +330,9 @@ export class CacherService {
                     if (countryEntity_regions[i].years != null) {
 
                         // loop through region years
-                        for (let j=0; j<countryEntity_regions[i].years.length; j++) {
-                            // find required region
-                            
-                            if (countryEntity_regions[i].years[j] == year) {
-                                year_in_left_regions = true;
-                                break;
-                            }
-                            
-                        }
+                        year_in_left_regions = this.ls.doesListContainValue(countryEntity_regions[i].years, year)
+
+
                         if (!year_in_left_regions) {
                             year_in_left_regions = false;
                             break;
@@ -412,7 +393,7 @@ export class CacherService {
                         } else {
                             countryEntity_regions[i].years.push(year);
                         }
-                        let a = await this.regionEntityService.update(
+                        await this.regionEntityService.update(
                             countryEntity_regions[i].id, 
                             countryEntity_regions[i].years,
                             countryEntity_regions[i].code

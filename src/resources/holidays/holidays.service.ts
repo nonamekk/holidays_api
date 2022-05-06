@@ -6,7 +6,7 @@ import { CountryEntityService } from "src/models/country/country.service";
 import { ErrorService as es } from "src/errors/adderror.service";
 import {IHolidaysRequestError} from "./holidays.interface";
 import { map, Observable, tap } from "rxjs";
-import { IMonthsObject } from "src/utilities/descriptor.interface";
+import { MonthDays } from "src/utilities/month_days_array/mda.type";
 import { ICountry } from "src/integrations/holiday_callendar_api/callendar.interface";
 import { CacherService } from "src/cacher/cacher.service";
 import { CallendarPrepareService } from "src/integrations/holiday_callendar_api/data_prepare/prepdays.service";
@@ -180,8 +180,8 @@ export class HolidaysResourceService {
      */
     async serveHolidaysList(req: HolidaysDtoRequest): 
     Promise<
-        IMonthsObject[] | 
-        Observable<Promise<IMonthsObject[]>>
+        MonthDays[] | 
+        Observable<Promise<MonthDays[]>>
     > {
 
         let db_days_promise = this.dayEntityService.findByYear(

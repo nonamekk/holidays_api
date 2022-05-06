@@ -2,13 +2,18 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { DayEntityService } from './day.service';
 import { dayEntityProviders } from './day.providers';
-import { DescriptorModule } from 'src/utilities/descriptor.module';
 import { CountryEntityModule } from '../country/country.module';
 import { RegionEntityModule } from '../region/region.module';
+import { MonthDaysArrayModule } from 'src/utilities/month_days_array/mda.module';
+import { ListingModule } from 'src/utilities/listing.module';
 
 
 @Module({
-  imports: [DatabaseModule, DescriptorModule, RegionEntityModule, CountryEntityModule],
+  imports: [
+    DatabaseModule,
+    RegionEntityModule, CountryEntityModule,
+    MonthDaysArrayModule, ListingModule
+  ],
   providers: [
     ...dayEntityProviders,
     DayEntityService,

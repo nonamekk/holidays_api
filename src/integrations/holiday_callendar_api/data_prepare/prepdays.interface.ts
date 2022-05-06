@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import { Country } from "src/models/country/country.entity";
 import { ICountryEntityWithRegions } from "src/models/country/country.interface";
 import { Region } from "src/models/region/region.entity";
-import { IMonthsObject } from "src/utilities/descriptor.interface";
+import { MonthDays } from "src/utilities/month_days_array/mda.type";
 import { IDay } from "../callendar.interface";
 
 /**
@@ -79,7 +79,7 @@ export interface ITryLoadHolidayDaysReturning {
      */
     prep_obs: Observable<Promise<{
         containing_days: boolean;
-        result: IMonthsObject[];
+        result: MonthDays[];
         days: IDay[];
     }>> | undefined
 }

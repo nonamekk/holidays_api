@@ -22,7 +22,6 @@ export class HolidaysResourceController {
             type: "array",
             example: [
                 {
-                    "id": 0,
                     "month": "January",
                     "days": [
                         {
@@ -34,17 +33,14 @@ export class HolidaysResourceController {
                     ]
                 },
                 {
-                    "id": 1,
                     "month": "February",
                     "days": []
                 },
                 {
-                    "id": 2,
                     "month": "March",
                     "days": []
                 },
                 {
-                    "id": 3,
                     "month": "April",
                     "days": [
                         {
@@ -56,7 +52,6 @@ export class HolidaysResourceController {
                     ]
                 },
                 {
-                    "id": 4,
                     "month": "May",
                     "days": [
                         {
@@ -68,17 +63,14 @@ export class HolidaysResourceController {
                     ]
                 },
                 {
-                    "id": 5,
                     "month": "June",
                     "days": []
                 },
                 {
-                    "id": 6,
                     "month": "July",
                     "days": []
                 },
                 {
-                    "id": 7,
                     "month": "August",
                     "days": [
                         {
@@ -90,12 +82,10 @@ export class HolidaysResourceController {
                     ]
                 },
                 {
-                    "id": 8,
                     "month": "September",
                     "days": []
                 },
                 {
-                    "id": 9,
                     "month": "October",
                     "days": [
                         {
@@ -107,12 +97,10 @@ export class HolidaysResourceController {
                     ]
                 },
                 {
-                    "id": 10,
                     "month": "November",
                     "days": []
                 },
                 {
-                    "id": 11,
                     "month": "December",
                     "days": [
                         {

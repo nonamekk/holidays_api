@@ -17,6 +17,7 @@ import { CacherService } from 'src/cacher/cacher.service';
 import { ICountryEntityWithRegions, ISimpleDate } from 'src/models/country/country.interface';
 import { DateLimitsThrowingService } from 'src/utilities/throwers/date_limits/date_limits.service';
 import { CallendarPrepareService } from 'src/integrations/holiday_callendar_api/data_prepare/prepdays.service';
+import { ListingService } from 'src/utilities/listing.service';
 
 
 @Injectable()
@@ -29,6 +30,7 @@ export class StatusOfDayResourceService {
         private readonly cacherService: CacherService,
         private readonly callPrepService: CallendarPrepareService,
         private readonly dateLimitsThrowService: DateLimitsThrowingService,
+        private readonly ls: ListingService
     ) {}
 
     /**
@@ -157,43 +159,25 @@ export class StatusOfDayResourceService {
     ) {
         if (only_none != undefined) {
             if (only_none) {
-                if (day_database.none_in_regions_ids != null) {
-                    for (let i=0; i<day_database.none_in_regions_ids.length; i++) {
-                        if (day_database.none_in_regions_ids[i] == region_id) {
-                            // the day is holiday
-                            return this.createResponse(day_database, 'unknown');
-                        }
-                    }
+                if (this.ls.doesListContainValue(day_database.none_in_regions_ids, region_id)) {
+                    return this.createResponse(day_database, 'unknown');
                 }
                 return undefined;
             }
         }
-        if (day_database.holiday_in_regions_ids != null) {
-            for (let i=0; i<day_database.holiday_in_regions_ids.length; i++) {
-                if (day_database.holiday_in_regions_ids[i] == region_id) {
-                    // the day is holiday
-                    return this.createResponse(day_database, 'holiday');
-                }
-            }
+        if (this.ls.doesListContainValue(day_database.holiday_in_regions_ids, region_id)) {
+            return this.createResponse(day_database, 'holiday');
         }
+        
         if (workdays_in)
-        if (day_database.workday_in_regions_ids != null) {
-            for (let i=0; i<day_database.workday_in_regions_ids.length; i++) {
-                if (day_database.workday_in_regions_ids[i] == region_id) {
-                    // the day is workday
-                    return this.createResponse(day_database, 'workday');
-                }
-            }
+        if (this.ls.doesListContainValue(day_database.workday_in_regions_ids, region_id)) {
+            return this.createResponse(day_database, 'workday');
         }
+        
         if (with_none != undefined) {
             if (with_none) {
-                if (day_database.none_in_regions_ids != null) {
-                    for (let i=0; i<day_database.none_in_regions_ids.length; i++) {
-                        if (day_database.none_in_regions_ids[i] == region_id) {
-                            // the day is holiday
-                            return this.createResponse(day_database, 'unknown');
-                        }
-                    }
+                if (this.ls.doesListContainValue(day_database.none_in_regions_ids, region_id)) {
+                    return this.createResponse(day_database, 'unknown');
                 }
                 return undefined;
             }
@@ -216,45 +200,27 @@ export class StatusOfDayResourceService {
     checkCountryLists (day_database: Day, country_id: number, workdays_in: boolean, with_none?: boolean, only_none?: boolean) {
         if (only_none != undefined) {
             if (only_none) {
-                if (day_database.none_in_countries_ids != null) {
-                    for (let i=0; i<day_database.none_in_countries_ids.length; i++) {
-                        if (day_database.none_in_countries_ids[i] == country_id) {
-                            // the day is holiday
-                            return this.createResponse(day_database, 'unknown');
-                        }
-                    }
+                if (this.ls.doesListContainValue(day_database.none_in_countries_ids, country_id)) {
+                    return this.createResponse(day_database, 'unknown');
                 }
+                
                 return undefined;
             }
         }
 
         if (workdays_in)
-        if (day_database.holiday_in_countries_ids != null) {
-            for (let i=0; i<day_database.holiday_in_countries_ids.length; i++) {
-                if (day_database.holiday_in_countries_ids[i] == country_id) {
-                    // the day is holiday
-                    return this.createResponse(day_database, 'holiday');
-                }
-            }
+        if (this.ls.doesListContainValue(day_database.holiday_in_countries_ids, country_id)) {
+            return this.createResponse(day_database, 'holiday');
         }
-        if (day_database.workday_in_countries_ids != null) {
-            for (let i=0; i<day_database.workday_in_countries_ids.length; i++) {
-                if (day_database.workday_in_countries_ids[i] == country_id) {
-                    // the day is workday
-                    return this.createResponse(day_database, 'workday');
-                }
-            }
+        
+        if (this.ls.doesListContainValue(day_database.workday_in_countries_ids, country_id)) {
+            return this.createResponse(day_database, 'workday');
         }
         
         if (with_none != undefined) {
             if (with_none) {
-                if (day_database.none_in_countries_ids != null) {
-                    for (let i=0; i<day_database.none_in_countries_ids.length; i++) {
-                        if (day_database.none_in_countries_ids[i] == country_id) {
-                            // the day is holiday
-                            return this.createResponse(day_database, 'unknown');
-                        }
-                    }
+                if (this.ls.doesListContainValue(day_database.none_in_countries_ids, country_id)) {
+                    return this.createResponse(day_database, 'unknown');
                 }
                 return undefined;
             }

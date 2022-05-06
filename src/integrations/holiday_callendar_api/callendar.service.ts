@@ -107,13 +107,6 @@ export class CallendarService {
                     return (day.holidayType == "public_holiday" || day.holidayType == "extra_working_day")
                 })
             })
-            // this is optional, decrease performance twice 
-            // map((data) => 
-            //     data.map((val) => {
-            //         delete val.name
-            //         return val
-            //     })
-            // )
         );
   }
 }

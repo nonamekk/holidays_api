@@ -5,11 +5,12 @@ import { Region } from '../region/region.entity';
 import { Day } from './day.entity';
 import { IDayEntity } from './day.interface';
 import { IDay } from '../../integrations/holiday_callendar_api/callendar.interface';
-import { DescriptorService } from 'src/utilities/descriptor.service';
 import { IDayStatusDate } from 'src/resources/status/status.interface';
 import { CountryEntityService } from '../country/country.service';
 import { RegionEntityService } from '../region/region.service';
 import { WeekDay } from './day.type';
+import { MonthDaysArrayService } from '../../utilities/month_days_array/mda.service';
+import { ListingService } from 'src/utilities/listing.service';
 
 
 @Injectable()
@@ -17,9 +18,10 @@ export class DayEntityService {
   constructor(
     @Inject('DAY_REPOSITORY')
     private dayRepository: Repository<Day>,
-    private readonly cachedD: DescriptorService,
     private readonly countryEntityService: CountryEntityService,
     private readonly regionEntityService: RegionEntityService,
+    private readonly monthDaysArrayService: MonthDaysArrayService,
+    private readonly ls: ListingService
   ) {}
 
 
@@ -30,11 +32,14 @@ export class DayEntityService {
    * @param country_id 
    * @param region_id 
    * @returns Prepared months object list (12 months with none or some days as IDate)
+   * @todo rename docs to mda from months object list
    */
   async prepareHolidaysFromDatabaseToResponse(days: Day[], country_id: number, region_id?: number) {
     // use cached object
-    return this.cachedD.getMonthsObjectArray().then(
-      mo => {
+    // return this.mda.obtainMonthDaysArray().then(
+    //   this.mda.mda => {
+        // console.log(mda);
+        let mda = this.monthDaysArrayService.getMonthDaysArray();
         for (let i=0; i<days.length; i++) {
           let day_is_found = false;
           if (days[i].holiday_in_countries_ids != null) {
@@ -43,7 +48,7 @@ export class DayEntityService {
 
                 let dow = new Date(days[i].year, days[i].month-1, days[i].day).getDay() + 1;
                 
-                mo[(days[i].month-1)].days.push({
+                mda[(days[i].month-1)].days.push({
                   "year": days[i].year,
                   "month": days[i].month,
                   "day": days[i].day,
@@ -61,7 +66,7 @@ export class DayEntityService {
   
                   let dow = new Date(days[i].year, days[i].month-1, days[i].day).getDay() + 1;
 
-                  mo[(days[i].month-1)].days.push({
+                  mda[(days[i].month-1)].days.push({
                     "year": days[i].year,
                     "month": days[i].month,
                     "day": days[i].day,
@@ -76,13 +81,13 @@ export class DayEntityService {
           }
         }
          // finally sort days in each month.
-         for (let i = 0; i< mo.length; i++) {
-          mo[i].days.sort((a,b) => {return (+a.day) - (+b.day)});
+         for (let i = 0; i< mda.length; i++) {
+          mda[i].days.sort((a,b) => {return (+a.day) - (+b.day)});
         }
-        return mo;
+        return mda;
        
-      }
-    )
+      // }
+    // )
   }
 
   /**
@@ -92,23 +97,19 @@ export class DayEntityService {
    */
   async prepareHolidaysFromCallendarToResponse(days: IDay[]) {
     // use cached object
-    return this.cachedD.getMonthsObjectArray().then(
-      mo => {
-        for (let i=0; i<mo.length; i++) {
+    // return this.mda.obtainMonthDaysArray().then(
+      // mda => {
+      let mda = this.monthDaysArrayService.getMonthDaysArray();
+        for (let i=0; i<mda.length; i++) {
           let days_to_skip = [];
           for (let j=0; j<days.length; j++) {
             let month = days[j].date.month-1
-            if (month == mo[i].id) {
+            if (month == i) {
               // if (days[j].holidayType) // no need to check because response returns only holidays
-              let skip = false;
-              for (let p=0; p<days_to_skip.length; p++) {
-                if (days_to_skip[p] == days[j].date.day) {
-                  skip = true;
-                  break;
-                }
-              }
+              
+              let skip = this.ls.doesListContainValue(days_to_skip, days[j].date.day);
               if (!skip) {
-                mo[i].days.push({
+                mda[i].days.push({
                   "year": days[j].date.year,
                   "month": days[j].date.month,
                   "day": days[j].date.day,
@@ -121,9 +122,9 @@ export class DayEntityService {
             }
           }
         }
-        return mo;
-      }
-    )
+        return mda;
+      // }
+    // )
   }
 
 
@@ -403,26 +404,20 @@ export class DayEntityService {
             if (rp_days[i].holidayType == 'public_holiday') {
               // day is public holiday for this region
 
-              let region_is_in_array = false;
+              
               // region id must be present in the day entity, if it is not, change indicator
-              if (db_days[j].holiday_in_regions_ids != null)
-              for (let p=0; p<db_days[j].holiday_in_regions_ids.length; p++) {
-                if (db_days[j].holiday_in_regions_ids[p] == db_region_id) {
-                  region_is_in_array = true;
-                  break;
-                }
-              }
+              let region_is_in_array = this.ls.doesListContainValue(
+                db_days[j].holiday_in_regions_ids, 
+                db_region_id
+              );
+              
 
               // If region wasn't found, try look at country_id, maybee this day is holiday for all regions of that country
               if (!region_is_in_array) {
-                if (db_days[j].holiday_in_countries_ids != null)
-                for (let p=0; p<db_days[j].holiday_in_countries_ids.length; p++) {
-                  if (db_days[j].holiday_in_countries_ids[p] == db_country_id) {
-                    // missleading name
-                    // but if the country is found, then all regions are found, hence region of question is found
-                    region_is_in_array = true;
-                  }
-                }
+                region_is_in_array = this.ls.doesListContainValue(
+                  db_days[j].holiday_in_countries_ids, 
+                  db_country_id
+                );
               }
 
               // update array list if region_id wasn't found
@@ -438,24 +433,11 @@ export class DayEntityService {
             } else if (rp_days[i].holidayType == 'extra_working_day') {
               // day is a working day
               // region id must be present in the day entity, if it is not, change indicator
-              let region_is_in_array = false;
-              if (db_days[j].workday_in_regions_ids != null)
-              for (let p=0; p<db_days[j].workday_in_regions_ids.length; p++) {
-                if (db_days[j].workday_in_regions_ids[p] == db_region_id) {
-                  region_is_in_array = true;
-                }
-              }
+              let region_is_in_array = this.ls.doesListContainValue(db_days[j].workday_in_regions_ids, db_region_id);
 
               // If region wasn't found, try look at country_id, maybee this day is holiday for all regions of that country
               if (!region_is_in_array) {
-                if (db_days[j].workday_in_countries_ids != null)
-                for (let p=0; p<db_days[j].workday_in_countries_ids.length; p++) {
-                  if (db_days[j].workday_in_countries_ids[p] == db_country_id) {
-                    // missleading name
-                    // but if the country is found, then all regions are found, hence region of question is found
-                    region_is_in_array = true;
-                  }
-                }
+                region_is_in_array = this.ls.doesListContainValue(db_days[j].workday_in_countries_ids, db_country_id)
               }
 
               if (!region_is_in_array) {
@@ -515,13 +497,8 @@ export class DayEntityService {
             // region entity not found, check by country only
 
             if (rp_days[i].holidayType == 'public_holiday') {
-              let counry_is_in_array = false;
-              if (db_days[j].holiday_in_countries_ids != null)
-              for (let p=0; p<db_days[j].holiday_in_countries_ids.length; p++) {
-                if (db_days[j].holiday_in_countries_ids[p] == db_country_id) {
-                  counry_is_in_array = true;
-                }
-              }
+              let counry_is_in_array = this.ls.doesListContainValue(db_days[j].holiday_in_countries_ids, db_country_id);
+              
               if (!counry_is_in_array) {
                 if (db_days[j].holiday_in_countries_ids != null) {
                   db_days[j].holiday_in_countries_ids.push(db_country_id);
@@ -531,13 +508,8 @@ export class DayEntityService {
                 staged_changes = true;
               }
             } else if (rp_days[i].holidayType == 'extra_working_day') {
-              let country_is_in_array = false;
-              if (db_days[j].workday_in_countries_ids != null)
-              for (let p=0; p<db_days[j].workday_in_countries_ids.length; p++) {
-                if (db_days[j].workday_in_countries_ids[p] == db_country_id) {
-                  country_is_in_array = true;
-                }
-              }
+              let country_is_in_array = this.ls.doesListContainValue(db_days[j].workday_in_countries_ids, db_country_id);
+              
               if (!country_is_in_array) {
                 if (db_days[j].workday_in_countries_ids != null) {
                   db_days[j].workday_in_countries_ids.push(db_country_id);
