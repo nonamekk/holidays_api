@@ -11,6 +11,7 @@ import { CountryEntityService } from "src/models/country/country.service";
 import { CallendarService } from "../callendar.service";
 import { DayEntityService } from "src/models/day/day.service";
 import { MonthDays } from "src/utilities/month_days_array/mda.type";
+import { ListingService } from "src/utilities/listing.service";
 
 @Injectable()
 export class CallendarPrepareService {
@@ -19,7 +20,8 @@ export class CallendarPrepareService {
         private readonly dateLimitsThrowService: DateLimitsThrowingService,
         private readonly countryEntityService: CountryEntityService,
         private readonly callendarService: CallendarService,
-        private readonly dayEntityService: DayEntityService
+        private readonly dayEntityService: DayEntityService,
+        private readonly ls: ListingService
     ) {}
 
     /**
@@ -464,23 +466,15 @@ export class CallendarPrepareService {
         }
 
         // check country years
-        
-        if (country_years != null)
-        for (let i=0; country_years.length; i++) {
-            if (country_years[i] == year) {
-                res.country_year_found = true;
-                return res;
-            }
+        if (this.ls.doesListContainValue(country_years, year)) {
+            res.country_year_found = true;
+            return res;
         }
         
-
         // check region years
-        if (region_years != null)
-        for (let i=0; region_years.length; i++) {
-            if (region_years[i] == year) {
-                res.region_year_found = true;
-                return res;
-            }
+        if (this.ls.doesListContainValue(region_years, year)) {
+            res.region_year_found = true;
+            return res;
         }
         
         // nothing found

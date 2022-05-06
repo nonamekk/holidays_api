@@ -14,6 +14,7 @@ import { DaysAndDim, IDayWithDayNumber } from './freed.interface';
 import { CacherService } from 'src/cacher/cacher.service';
 import { CallendarPrepareService } from 'src/integrations/holiday_callendar_api/data_prepare/prepdays.service';
 import { DateLimitsThrowingService } from 'src/utilities/throwers/date_limits/date_limits.service';
+import { ListingService } from 'src/utilities/listing.service';
 
 
 @Injectable()
@@ -25,7 +26,8 @@ export class FreeDaysResourceService {
         private readonly dimService: DaysInMonthsService,
         private readonly cacherService: CacherService,
         private readonly callPrepService: CallendarPrepareService,
-        private readonly dateLimitsThrowService: DateLimitsThrowingService
+        private readonly dateLimitsThrowService: DateLimitsThrowingService,
+        private readonly ls: ListingService
     ) {}
 
 
@@ -623,11 +625,12 @@ export class FreeDaysResourceService {
             return res_try;
         }
 
-        if (day.workday_in_countries_ids != null)
-        for (let i=0; i<day.workday_in_countries_ids.length; i++) {
-            if (day.workday_in_countries_ids[i] == country_id) {
-                return this.parseDayToIDay(day, true);
-            }
+        if (this.ls.doesListContainValue(day.workday_in_countries_ids, country_id)) {
+            return this.parseDayToIDay(day, true);
+        }
+        
+        if (this.ls.doesListContainValue(day.workday_in_countries_ids, country_id)) {
+            return this.parseDayToIDay(day, true)
         }
 
         return undefined;
@@ -653,12 +656,8 @@ export class FreeDaysResourceService {
             return res_try;
         }
         
-        
-        if (day.workday_in_regions_ids != null)
-        for (let i=0; i<day.workday_in_regions_ids.length; i++) {
-            if (day.workday_in_regions_ids[i] == region_id) {
-                return this.parseDayToIDay(day, true);
-            }
+        if (this.ls.doesListContainValue(day.workday_in_regions_ids, region_id)) {
+            return this.parseDayToIDay(day, true);
         }
         
         return undefined;
@@ -672,11 +671,8 @@ export class FreeDaysResourceService {
      * @returns parsed day or undefined
      */
     parseDayToIDay_NoWorkdays_OnlyCountry(day: Day, country_id: number): IDay | undefined {
-        if (day.holiday_in_countries_ids != null)
-        for (let i=0; i<day.holiday_in_countries_ids.length; i++) {
-            if (day.holiday_in_countries_ids[i] == country_id) {
-                return this.parseDayToIDay(day);
-            }
+        if (this.ls.doesListContainValue(day.holiday_in_countries_ids, country_id)) {
+            return this.parseDayToIDay(day);
         }
         
         return undefined;
@@ -694,13 +690,10 @@ export class FreeDaysResourceService {
         let only_country_try = this.parseDayToIDay_NoWorkdays_OnlyCountry(day, country_id);
         if (only_country_try != undefined) return only_country_try
 
-        if (day.holiday_in_regions_ids != null)
-        for (let i=0; i<day.holiday_in_regions_ids.length; i++) {
-            if (day.holiday_in_regions_ids[i] == region_id) {
-                return this.parseDayToIDay(day);
-            }
+        if (this.ls.doesListContainValue(day.holiday_in_regions_ids, region_id)) {
+            return this.parseDayToIDay(day);
         }
-
+        
         return undefined;
         
     }

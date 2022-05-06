@@ -10,11 +10,14 @@ import { StatusOfDayResourceService } from './status.service';
 import { DaysInMonthsModule } from 'src/utilities/dim.module';
 import { CallendarPrepareModule } from 'src/integrations/holiday_callendar_api/data_prepare/prepdays.module';
 import { DateLimitsThrowingModule } from 'src/utilities/throwers/date_limits/date_limits.module';
+import { ListingModule } from 'src/utilities/listing.module';
 
 @Module({
   imports: [CallendarModule, CountryEntityModule, DayEntityModule,
     CacherModule, RegionEntityModule, DaysInMonthsModule,
-    CallendarPrepareModule, DateLimitsThrowingModule],
+    CallendarPrepareModule, DateLimitsThrowingModule,
+    ListingModule
+  ],
   controllers: [StatusOfDayResourceController],
   providers: [StatusOfDayResourceService],
   exports: [StatusOfDayResourceService]
