@@ -78,4 +78,4 @@ $ npm run test:cov
 
 ## Author
 
-[nonamekk](https://github.com/nonamekk)
+[Kiril Krutiajev](https://github.com/nonamekk)
