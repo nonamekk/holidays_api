@@ -75,7 +75,3 @@ $ npm run test:cov
 ```
 
 --- -->
-
-## Author
-
-[Kiril Krutiajev](https://github.com/nonamekk)
